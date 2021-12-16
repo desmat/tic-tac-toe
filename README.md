@@ -2,7 +2,7 @@ A very simple app to play the game of tic-tac-toe, utilizing the latest tech and
 
 ## Demo
 
-[tic-tac-toe](http://tic-tac-toe.desmat.ca)
+[tic-tac-toe.desmat.ca](https://tic-tac-toe.desmat.ca)
 
 
 ## Tech
