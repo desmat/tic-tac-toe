@@ -7,9 +7,11 @@ import { store } from './app/store';
 import { Provider } from 'react-redux';
 import * as serviceWorker from './serviceWorker';
 
+const BASENAME = '/'
+
 ReactDOM.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={BASENAME}>
       <Provider store={store}>
         <App />
       </Provider>
