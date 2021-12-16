@@ -12,8 +12,7 @@
   flex-direction: column;  left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  max-width: 500px;
-  max-height: 500px;
+  max-width: 400px;
 }
 
 .Menu .content {
