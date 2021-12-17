@@ -9,83 +9,95 @@ import {
   PLAY_MODE_LOCAL,
   PLAY_MODE_X_VS_BOT,
   PLAY_MODE_BOT_VS_BOT,
+  STATUS_WIN, 
+  STATUS_DRAW,
   reset,
   selectTurn,
+  selectStatus,
 } from './features/tic-tac-toe/gameSlice'
 import Game from './features/tic-tac-toe/Game'
 import { Menu, MenuItem } from './Menu'
 import './App.css'
 
-function WinMenu({ onClick, element }) {
+function GameOverMenu({ onClick, element }) {
+  const status = useSelector(selectStatus)
   const turn = useSelector(selectTurn)
   const navigate = useNavigate()
 
   return (
     <Menu transition="true" element={element}>
-      <MenuItem message={`${turn ? `${turn.toUpperCase()} wins` : 'Game over'}. Play again?`} onClick={onClick} />
+      {status === STATUS_DRAW &&
+        <MenuItem message="Draw. Play again?" onClick={onClick} /> }      
+      {status === STATUS_WIN &&
+        <MenuItem message={`${turn ? `${turn.toUpperCase()} wins` : 'Game over'}. Play again?`} onClick={onClick} /> }
       <MenuItem message='Back' onClick={() => navigate('/')} />
     </Menu>
+  )
+}
+
+function AboutMenu({ element }) {
+  const navigate = useNavigate()
+
+  return (
+    <Menu element={element}>
+    <div>
+      <p style={{ textAlign: "center" }}>
+        <i>A very simple app utilizing latest tech and best practice from the React ecosystem</i>
+        <br />
+        <br />
+        <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
+      </p>
+    </div>
+    <div>
+      <MenuItem message="Back" onClick={() => navigate('/')} />
+    </div>
+  </Menu>
   )
 }
 
 function App() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const handleWin = () => setTimeout(() => navigate(`win`), 1250)
-  const handleDraw = () => setTimeout(() => navigate(`draw`), 250)
+  const gameOver = (status) => {
+    setTimeout(
+      () => navigate('gameover'),
+      status === STATUS_WIN ? 1250 : 250
+    )
+  }
   const newGame = (mode) => {
     dispatch(reset({ mode }))
     navigate('play')
   }
-  const gameElement = <Game onWin={handleWin} onDraw={handleDraw} />
+  const gameElement = <Game onGameOver={gameOver} />
 
   return (
     <div className="App">
-        <Routes>
-          <Route path={'/'} element={
-            <Menu element={<Game demoMode="true" />}>
-              <MenuItem message="Solo game" onClick={() => newGame(PLAY_MODE_LOCAL)} />
-              <MenuItem message="Play against Bot" onClick={() => newGame(PLAY_MODE_X_VS_BOT)} />
-              <MenuItem message="Bot against Bot" onClick={() => newGame(PLAY_MODE_BOT_VS_BOT)} />
-              <MenuItem message="About" onClick={() => navigate('about')} />
-            </Menu>
-          } />
+      <Routes>
+        <Route path={'/'} element={
+          <Menu element={gameElement}>
+            <MenuItem message="Solo game" onClick={() => newGame(PLAY_MODE_LOCAL)} />
+            <MenuItem message="Play against Bot" onClick={() => newGame(PLAY_MODE_X_VS_BOT)} />
+            <MenuItem message="Bot against Bot" onClick={() => newGame(PLAY_MODE_BOT_VS_BOT)} />
+            <MenuItem message="About" onClick={() => navigate('about')} />
+          </Menu>
+        } />
 
-          <Route path={'win'} element={
-            <WinMenu onClick={newGame} element={gameElement} />
-          } />
+        <Route path={'gameover'} element={
+          <GameOverMenu onClick={newGame} element={gameElement} />
+        } />
 
-          <Route path={'draw'} element={
-            <Menu transition="true" element={gameElement}>
-              <MenuItem message="Draw. Play again?" onClick={newGame} />
-              <MenuItem message="Back" onClick={() => navigate('/')} fadeIn="true" />
-            </Menu>
-          } />
+        <Route path={'play'} element={gameElement} />
 
-          <Route path={'play'} element={gameElement} />
+        <Route path={'about'} element={
+          <AboutMenu element={gameElement} />
+        } />
 
-          <Route path={'about'} element={
-            <Menu element={gameElement}>
-              <div>
-                <p style={{ textAlign: "center" }}>
-                  <i>A very simple app utilizing latest tech and best practice from the React ecosystem</i>
-                  <br />
-                  <br />
-                  <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
-                </p>
-              </div>
-              <div>
-                <MenuItem message="Back" onClick={() => navigate('/')} />
-              </div>
-            </Menu>
-          } />
-
-          <Route path="*" element={
-            <Menu>
-              <MenuItem message="404 Not Found" onClick={() => navigate('/')} />
-            </Menu>
-          } />
-        </Routes>
+        <Route path="*" element={
+          <Menu element={gameElement}>
+            <MenuItem message="404 Not Found" onClick={() => navigate('/')} />
+          </Menu>
+        } />
+      </Routes>
 
       {/* force reload - DEBUG ONLY */}
       {(!process.env.NODE_ENV || process.env.NODE_ENV === 'development') &&
