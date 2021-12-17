@@ -78,6 +78,9 @@ function Game({ onGameOver }) {
     }
 
     return unsubscribe
+    
+    // use effect for only mount and unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   let canClick = (mode === PLAY_MODE_LOCAL) ||
