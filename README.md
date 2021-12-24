@@ -1,4 +1,4 @@
-A very simple app to play the game of tic-tac-toe, utilizing the latest tech and best practice from the React ecosystem. 
+A simple web app to play the game of tic-tac-toe, utilizing the latest tech and best practice from the React ecosystem. 
 
 ## Demo
 
@@ -12,6 +12,7 @@ A very simple app to play the game of tic-tac-toe, utilizing the latest tech and
 - [Redux Toolkit](https://redux-toolkit.js.org/)
 - [Create React App](https://github.com/facebook/create-react-app)
 - [React Router](https://reactrouter.com/)
+- [Firestore](https://firebase.google.com/products/firestore)
 
 
 ## Available Scripts
