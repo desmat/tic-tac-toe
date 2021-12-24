@@ -130,7 +130,7 @@ function AboutMenu({ element }) {
     <Menu element={element}>
     <div>
       <p style={{ textAlign: "center" }}>
-        <i>A very simple app utilizing latest tech and best practice from the React ecosystem</i>
+        <i>A simple web app utilizing latest tech and best practice from the React ecosystem</i>
         <br />
         <br />
         <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>

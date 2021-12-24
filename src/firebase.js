@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 import * as firestore from "firebase/firestore"
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
-const firebaseConfig = true /* (process.env.NODE_ENV === 'development') */ ? {
+const firebaseConfig = (process.env.NODE_ENV === 'development') ? {
   apiKey: "AIzaSyCfoZFKKOaxF-c0qZQCXrJSzHLe5nAmkBE",
   authDomain: "test-firestore-desmat-ca.firebaseapp.com",
   projectId: "test-firestore-desmat-ca",
@@ -9,7 +10,12 @@ const firebaseConfig = true /* (process.env.NODE_ENV === 'development') */ ? {
   messagingSenderId: "279126390661",
   appId: "1:279126390661:web:f42dd60f352501985876ec"
 } : {
-  // TODO
+  apiKey: "AIzaSyCnvzVYXmJENHsFQsn-OwETEa-04SrAr58",
+  authDomain: "tic-tac-toe-desmat-ca.firebaseapp.com",
+  projectId: "tic-tac-toe-desmat-ca",
+  storageBucket: "tic-tac-toe-desmat-ca.appspot.com",
+  messagingSenderId: "484294760836",
+  appId: "1:484294760836:web:1767b8a65ec3d22d15a5d1"
 }
 
 // Initialize Firebase
@@ -19,3 +25,30 @@ export const db = firestore.getFirestore()
 // REMOVE BEFORE SHIPPING
 // window.db = db // ALLOW CONSOLE DEBUG
 // window.firestore = firestore // ALLOW CONSOLE DEBUG
+
+// anonymous auth only for prod
+
+if (process.env.NODE_ENV !== 'development') {
+  const auth = getAuth()
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // // User is signed in, see docs for a list of available properties
+      // // https://firebase.google.com/docs/reference/js/firebase.User
+      // const uid = user.uid
+      // console.log('onAuthStateChanged', { uid })
+    } else {
+      // // User is signed out
+      // console.log('onAuthStateChanged signed out')
+    }
+  })
+
+  signInAnonymously(auth)
+    .then(() => {
+      // // Signed in..
+      // console.log('Signed in anonymously to firebase auth')
+    })
+    .catch((error) => {
+      console.error('Firestore signing error', { error })
+    })
+}
