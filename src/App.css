@@ -7,11 +7,31 @@ html, body, #root, .App {
   position: absolute;
   bottom: 0;
   right: 0;
-  padding: 3px;
+  padding: 5px;
+  font-size: 1.5em;
   cursor: pointer;
   opacity: 0.1;
 }
 
 .App .DebugReload:hover {
   opacity: 0.3;
+}
+
+.App .HomeIcon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 5px;
+  font-size: 1.7em;
+  cursor: pointer;
+  opacity: 0.1;
+}
+
+.App .HomeIcon:hover {
+  opacity: 0.3;
+}
+
+/* only show this link when a game is going, ie no menu overlayed */
+.App .Menu+.HomeIcon {
+  display: none;
 }

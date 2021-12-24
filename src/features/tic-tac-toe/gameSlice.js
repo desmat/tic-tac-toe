@@ -2,9 +2,9 @@ import { createSlice } from '@reduxjs/toolkit'
 
 export const [MARK_X, MARK_O] = ['x', 'o']
 
-export const [STATUS_INIT, STATUS_DEMO, STATUS_PLAYING, STATUS_WIN, STATUS_DRAW] = ['INIT', 'DEMO', 'PLAYING', 'WIN', 'DRAW']
+export const [STATUS_INIT, STATUS_DEMO, STATUS_PLAYING, STATUS_WIN, STATUS_DRAW, STATUS_ABORTED] = ['INIT', 'DEMO', 'PLAYING', 'WIN', 'DRAW', 'ABORTED']
 
-export const [PLAY_MODE_LOCAL, PLAY_MODE_X_VS_BOT, PLAY_MODE_O_VS_BOT, PLAY_MODE_BOT_VS_BOT, PLAY_MODE_DEMO] = ['LOCAL', 'X_VS_BOT', 'O_VS_BOT', 'BOT_VS_BOT', 'DEMO']
+export const [PLAY_MODE_LOCAL, PLAY_MODE_X_VS_BOT, PLAY_MODE_O_VS_BOT, PLAY_MODE_BOT_VS_BOT, PLAY_MODE_DEMO, PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE] = ['LOCAL', 'X_VS_BOT', 'O_VS_BOT', 'BOT_VS_BOT', 'DEMO', 'X_VS_REMOTE', 'O_VS_REMOTE']
 
 const initialState = {
   mode: PLAY_MODE_DEMO,
@@ -15,6 +15,7 @@ const initialState = {
     [{}, {}, {}],
     [{}, {}, {}],
   ],
+  moves: [],
 }
 
 const checkWin = (squares, mark) => {
@@ -35,17 +36,6 @@ const markSquare = (square, mark) => {
   }
 }
 
-const findFreeSquare = (grid) => {
-  // console.log('findFreeSquare', grid)
-  if (!grid) return []
-
-  const freeSquares = grid.flat().filter((square) => !square.marked)
-  if (freeSquares.length > 0) {
-    const square = freeSquares[Math.floor(Math.random() * freeSquares.length)]
-    return [square.row, square.col]
-  }
-}
-
 export const gameSlice = createSlice({
   name: 'game',
   initialState: {
@@ -54,27 +44,28 @@ export const gameSlice = createSlice({
     grid: initialState.grid.map((rowData, row) => rowData.map((cell, col) => { cell.row = row; cell.col = col; return cell}))
   },
   reducers: {
+    set: (state, action) => {
+      return {
+        ...state, 
+        ...action.payload
+      }
+    },
     reset: (state, action) => {      
       state.mode = (action && action.payload && action.payload.mode) || state.mode // keep same as last game unless otherwise specified
+      state.remoteGameId = (action && action.payload && action.payload.remoteGameId) || initialState.remoteGameId
       state.turn = initialState.turn
       state.status = initialState.status
       state.grid = initialState.grid
+      state.moves = initialState.moves
     },
     mark: (state, action) => {
-      const { bot } = action.payload
-      const { grid, mode, turn } = state
+      const { row, col } = action.payload
+      const { grid, turn } = state
       // console.log('game reducer mark', { state, action, mode, turn, grid })
-
-      if (bot && mode === PLAY_MODE_LOCAL) {
-        console.error('game reducer mark: invalid mode for bot action', { mode, action })
-        return
-      }
-
-      // if bot here then pick the square else select 
-      const [row, col] = bot ? findFreeSquare(grid) : [action.payload.row, action.payload.col]
       const square = grid[row][col]
 
       if (markSquare(square, turn)) {
+        state.moves.push(row * 3 + col)
         const gotDraw = checkDraw(grid)
         const gotWin = checkWin(grid[row], turn) ||
                        checkWin([grid[0][col], grid[1][col], grid[2][col]], turn) ||
@@ -94,7 +85,7 @@ export const gameSlice = createSlice({
   }
 })
 
-export const { mark, reset } = gameSlice.actions
+export const { mark, reset, set } = gameSlice.actions
 
 export const selectGridData = (state) => state.game.grid
 
@@ -103,5 +94,9 @@ export const selectTurn = (state) => state.game.turn
 export const selectMode = (state) => state.game.mode
 
 export const selectStatus = (state) => state.game.status
+
+export const selectMoves = (state) => state.game.moves
+
+export const selectRemoteGameId = (state) => state.game.remoteGameId
 
 export default gameSlice.reducer
