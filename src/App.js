@@ -6,7 +6,6 @@ import {
   Routes,
   useNavigate,
   useParams,
-  useSearchParams,
 } from "react-router-dom"
 import {
   PLAY_MODE_LOCAL,
@@ -36,7 +35,7 @@ function CreateRemoteGameMenu({ element }) {
       console.log('game created', { gameId })
     }, onRemotePlayerJoined: (gameId) => {
       console.log('player o joined', { gameId })
-      navigate(`/play/x_vs_remote?id=${gameId}`)  
+      navigate(`/play/x_vs_remote/${gameId}`)  
     }})
 
     return cleanup
@@ -62,7 +61,7 @@ function FindRemoteGameMenu({ element }) {
   const [games, setGames] = useState([])
   const join = (gameId) => {
     joinRemoteGame({ gameId, player: 'o', onSuccess: () => {
-      navigate(`/play/o_vs_remote?id=${gameId}`)  
+      navigate(`/play/o_vs_remote/${gameId}`)  
     }})
   }
 
@@ -141,18 +140,13 @@ function AboutMenu({ element }) {
 
 function GameContainer({ element }) {
   const dispatch = useDispatch()
-  const { mode = 'local' } = useParams()
-  const [searchParams] = useSearchParams()
-  const gameId = searchParams.get('id')
+  const { mode = PLAY_MODE_LOCAL, id } = useParams()
 
   useEffect(() => {
-    // console.log('GameContainer useEffect', { mode })
-
-    if (mode) {
-      dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: gameId }))
-    }
+    // console.log('GameContainer useEffect', { mode, id })
+    dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: id }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode])
+  }, [mode, id])
 
   return (
     <div className={`GameContainer}`}>

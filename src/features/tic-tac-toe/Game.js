@@ -115,14 +115,8 @@ function Game({ onGameOver }) {
 
     return () => {
       // console.log('Game useEffect cleanup', { gameId, mode })
-
-      if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
-        clearTimeout(demoActionTimeout)
-      }
-
       if (cleanupRemoteGame) {
         cleanupRemoteGame()
-        cleanupRemoteGame = undefined
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,10 +127,9 @@ function Game({ onGameOver }) {
     // console.log('useEffect', { mode, status, turn })
     const unsubscribe = store.subscribe(() => stateChanged(store, onGameOver))
 
+    // kick off demo mode initially
     if (mode === PLAY_MODE_DEMO && status === STATUS_INIT) {
       dispatch(reset({ mode: PLAY_MODE_DEMO }))
-    } else if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
-      clearTimeout(demoActionTimeout)
     }
 
     return unsubscribe
