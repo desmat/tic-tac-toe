@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux'
-import { useSearchParams } from "react-router-dom"
 import * as bot from './bot'
 import {
   MARK_X,
@@ -84,6 +83,8 @@ function stateChanged(store, onGameOver) {
   lastMoves = moves
 }
 
+let lastGameId 
+
 function Game({ onGameOver }) {
   const dispatch = useDispatch()
   const store = useStore()
@@ -91,16 +92,19 @@ function Game({ onGameOver }) {
   const mode = useSelector(selectMode)
   const status = useSelector(selectStatus)
   const turn = useSelector(selectTurn)
-  const [searchParams] = useSearchParams()
-  const gameId = searchParams.get('id')
-  const player = searchParams.get('player')
+  const gameId = useSelector(selectRemoteGameId)
 
   useEffect(() => {
-    // console.log('Game useEffect', { gameId, player })
+    // console.log('Game useEffect', { gameId, mode })
+
+    if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
+      clearTimeout(demoActionTimeout)
+    }
 
     let cleanupRemoteGame
-    if (gameId && player && [PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
-      cleanupRemoteGame = startRemoteGame({ gameId, player, onRemotePlayerMove: ({ row, col }) => {
+    if (gameId && gameId !== lastGameId && [PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
+      lastGameId = gameId // useEffect will fire with same params when switching menus
+      cleanupRemoteGame = startRemoteGame({ gameId, player: mode[0].toLowerCase(), onRemotePlayerMove: ({ row, col }) => {
         // console.log('remote player moved', { row, col })
         dispatch(mark({ row, col }))
       }, onRemotePlayerDisconnected: ({ gameId, player }) => {
@@ -110,13 +114,19 @@ function Game({ onGameOver }) {
     }
 
     return () => {
+      // console.log('Game useEffect cleanup', { gameId, mode })
+
+      if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
+        clearTimeout(demoActionTimeout)
+      }
+
       if (cleanupRemoteGame) {
         cleanupRemoteGame()
         cleanupRemoteGame = undefined
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId, player, mode])
+  }, [gameId, mode])
 
 
   useEffect(() => {

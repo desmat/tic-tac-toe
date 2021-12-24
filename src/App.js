@@ -5,6 +5,8 @@ import {
   Route,
   Routes,
   useNavigate,
+  useParams,
+  useSearchParams,
 } from "react-router-dom"
 import {
   PLAY_MODE_LOCAL,
@@ -26,7 +28,6 @@ import { createRemoteGame, findRemoteGames, joinRemoteGame } from './features/ti
 import './App.css'
 
 function CreateRemoteGameMenu({ element }) {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -35,8 +36,7 @@ function CreateRemoteGameMenu({ element }) {
       console.log('game created', { gameId })
     }, onRemotePlayerJoined: (gameId) => {
       console.log('player o joined', { gameId })
-      dispatch(reset({ mode: PLAY_MODE_X_VS_REMOTE, remoteGameId: gameId }))
-      navigate(`/remote/play?id=${gameId}&player=x`)  
+      navigate(`/play/x_vs_remote?id=${gameId}`)  
     }})
 
     return cleanup
@@ -58,19 +58,15 @@ function CreateRemoteGameMenu({ element }) {
 }
 
 function FindRemoteGameMenu({ element }) {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const [games, setGames] = useState([])
   const join = (gameId) => {
     joinRemoteGame({ gameId, player: 'o', onSuccess: () => {
-      // console.log('joinRemoteGame onSuccess')
-      dispatch(reset({ mode: PLAY_MODE_O_VS_REMOTE, remoteGameId: gameId }))
-      navigate(`/remote/play?id=${gameId}&player=o`)  
+      navigate(`/play/o_vs_remote?id=${gameId}`)  
     }})
   }
 
   useEffect(() => {
-    // console.log('useEffect', {})
     const cleanup = findRemoteGames(setGames)
 
     return cleanup
@@ -143,28 +139,42 @@ function AboutMenu({ element }) {
   )
 }
 
-function App() {
+function GameContainer({ element }) {
   const dispatch = useDispatch()
+  const { mode = 'local' } = useParams()
+  const [searchParams] = useSearchParams()
+  const gameId = searchParams.get('id')
+
+  useEffect(() => {
+    // console.log('GameContainer useEffect', { mode })
+
+    if (mode) {
+      dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: gameId }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
+
+  return (
+    <div className={`GameContainer}`}>
+      <div className="element">
+        {element}
+      </div>
+    </div>
+  )
+}
+
+function App() {
   const navigate = useNavigate()
-  const gameOver = ({ mode, status }) => {
-    setTimeout(
-      () => {
-        if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
-          navigate('/remote/gameover')
-        } else {
-          navigate('gameover')
-        }
-      },
-      status === STATUS_WIN ? 1250 : 250
-    )
+  const gameOver = ({ status }) => {
+    setTimeout(() => {
+      navigate('/play/gameover')
+    }, status === STATUS_WIN ? 1250 : 250)
   }
   const newGame = (mode) => {
-    // console.log('newGame', { mode })
     if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
       navigate('/remote')
     } else {
-      dispatch(reset({ mode }))
-      navigate('play')
+      navigate(`/play${mode === PLAY_MODE_LOCAL ? '' : `/${mode.toLowerCase()}`}`)
     }
   }
   const gameElement = <Game onGameOver={gameOver} />
@@ -182,28 +192,32 @@ function App() {
           </Menu>
         } />
 
-        <Route path={'gameover'} element={
+        <Route path={'play/gameover'} element={
           <GameOverMenu onClick={newGame} element={gameElement} />
         } />
 
-        <Route path={'remote/gameover'} element={
-          <GameOverMenu onClick={newGame} element={gameElement} />
+        <Route path={'play'} element={
+          <GameContainer element={gameElement} />
         } />
-
-        <Route path={'play'} element={gameElement} />
-
-        <Route path={'remote/play'} element={gameElement} />
         
-        <Route path={'about'} element={
-          <AboutMenu element={gameElement} />
+        <Route path={'play/:mode'} element={
+          <GameContainer element={gameElement} />
         } />
-
+        
+        <Route path={'play/:mode/:id'} element={
+          <GameContainer element={gameElement} />
+        } />
+        
         <Route path={'remote'} element={
           <FindRemoteGameMenu element={gameElement} />
         } />
 
         <Route path={'remote/start'} element={
           <CreateRemoteGameMenu element={gameElement} />
+        } />
+
+        <Route path={'about'} element={
+          <AboutMenu element={gameElement} />
         } />
 
         <Route path="*" element={

@@ -54,7 +54,7 @@ function cleanupGameDoc(gameId, player) {
   })
 }
 
-function updateGameDoc(gameId, player, data = {}) {
+function updateGameDoc(gameId, player, data = {}, onError) {
   // console.log('updating game', { gameId, player })
   firestore.updateDoc(firestore.doc(firebase.db, COLLECTION_NAME, gameId), { 
     [`player_${player}_updated`]: firestore.serverTimestamp(),
@@ -62,8 +62,11 @@ function updateGameDoc(gameId, player, data = {}) {
   }).then((ref) => {
     // console.log('updated game', { gameId })
   }).catch((error) => {
-    console.error('error updating game', error)
-    cleanupGameDoc(gameId)
+    if (onError) {
+      onError(error)
+    } else {
+      console.error('error updating game', error)
+    }
   })
 }
 
@@ -103,7 +106,7 @@ export function startRemoteGame({ gameId, player, onRemotePlayerMove, onRemotePl
   // keep current player fresh
   const pingInterval = setInterval(() => {
     // console.log('updating game', { gameId, player })
-    updateGameDoc(gameId, player)
+    updateGameDoc(gameId, player, {}, () => {clearInterval(pingInterval)})
   }, UPDATE_GAME_INTERVAL)  
 
   return () => {
@@ -156,7 +159,7 @@ export function createRemoteGame({ onSuccess, onRemotePlayerJoined }) {
 
     // keep this game fresh
     pingInterval = setInterval(() => {
-      updateGameDoc(gameId, 'x')
+      updateGameDoc(gameId, 'x', {}, () => {clearInterval(pingInterval)})
     }, UPDATE_GAME_INTERVAL)            
   }).catch((error) => {
     console.error('error creating game', error)
