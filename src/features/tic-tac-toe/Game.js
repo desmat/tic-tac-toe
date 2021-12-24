@@ -1,62 +1,87 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux'
-import { 
+import { useSearchParams } from "react-router-dom"
+import * as bot from './bot'
+import {
   MARK_X,
   MARK_O,
   PLAY_MODE_BOT_VS_BOT,
   PLAY_MODE_DEMO,
   PLAY_MODE_X_VS_BOT,
   PLAY_MODE_O_VS_BOT,
+  PLAY_MODE_X_VS_REMOTE,
+  PLAY_MODE_O_VS_REMOTE,
   STATUS_INIT,
   STATUS_PLAYING,
-  STATUS_WIN, 
+  STATUS_WIN,
   STATUS_DRAW,
+  STATUS_ABORTED,
   PLAY_MODE_LOCAL,
   mark,
   reset,
+  set,
   selectGridData,
   selectMode,
   selectStatus,
-  selectTurn } from './gameSlice'
+  selectTurn,
+  selectMoves,
+  selectRemoteGameId,
+} from './gameSlice'
+import { recordRemoteGameMove, startRemoteGame } from './remoteGame'
 import Grid from './Grid'
 import './Game.css'
 
-let lastMode, lastStatus, lastTurn, demoActionTimeout
+let lastMode, lastStatus, lastTurn, demoActionTimeout, lastMoves = []
 
 function stateChanged(store, onGameOver) {
   const state = store.getState()
   const mode = selectMode(state)
+  const grid = selectGridData(state)
   const status = selectStatus(state)
   const turn = selectTurn(state)
+  const moves = selectMoves(state)
+  const remoteGameId = selectRemoteGameId(state)
 
-  if ((lastMode !== mode || lastStatus !== status || lastTurn !== turn)) {
-    // console.log('store changed', { mode, status, turn })
-    
-    if (mode !== PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW].includes(status)) {
+  if ((lastMode !== mode || lastStatus !== status || lastTurn !== turn || (moves && moves.length !== lastMoves.length))) {
+    // console.log('store changed', { mode, status, turn, moves, remoteGameId })
+
+    // update remote game
+    if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode) && remoteGameId && moves && moves.length !== lastMoves.length) {
+      const player = moves.length % 2 ? 'x' : 'o' // x is always odd
+      // console.log('stateUpdated: PLAY_MODE_-_VS_REMOTE', { mode, player, turn, status, moves })
+      if ((mode === PLAY_MODE_X_VS_REMOTE && player === 'x') ||
+          (mode === PLAY_MODE_O_VS_REMOTE && player === 'o')) {
+        recordRemoteGameMove({ gameId: remoteGameId, player, moves, status })
+      }
+    }
+
+    // process locally
+    if (mode !== PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW, STATUS_ABORTED].includes(status)) {
       // game over
-      onGameOver && onGameOver(status, turn)
+      onGameOver && onGameOver({ mode, status })
     } else if ((mode === PLAY_MODE_X_VS_BOT && turn === MARK_O) ||
-               (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
+      (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
       // bot plays
       setTimeout(() => {
-        store.dispatch(mark({ bot: true }))}, 
-        Math.floor(Math.random() * 5) * 100 + 200)
+        store.dispatch(mark(bot.nextMove(grid)))
+      }, Math.floor(Math.random() * 5) * 100 + 200)
     } else if (mode === PLAY_MODE_DEMO && [STATUS_INIT, STATUS_PLAYING].includes(status)) {
       // bot plays in demo mode (slower)
       demoActionTimeout = setTimeout(() => {
-        store.dispatch(mark({ bot: true }))}, 
-        Math.floor(Math.random() * 10) * 100 + 500)
+        store.dispatch(mark(bot.nextMove(grid)))
+      }, Math.floor(Math.random() * 10) * 100 + 500)
     } else if (mode === PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW].includes(status)) {
       // restart demo game until real game
       demoActionTimeout = setTimeout(() => {
-        store.dispatch(reset({ mode: PLAY_MODE_DEMO }))}, 
-        3000)
+        store.dispatch(reset({ mode: PLAY_MODE_DEMO }))
+      }, 3000)
     }
   }
 
   lastMode = mode
   lastStatus = status
   lastTurn = turn
+  lastMoves = moves
 }
 
 function Game({ onGameOver }) {
@@ -66,7 +91,34 @@ function Game({ onGameOver }) {
   const mode = useSelector(selectMode)
   const status = useSelector(selectStatus)
   const turn = useSelector(selectTurn)
-  
+  const [searchParams] = useSearchParams()
+  const gameId = searchParams.get('id')
+  const player = searchParams.get('player')
+
+  useEffect(() => {
+    // console.log('Game useEffect', { gameId, player })
+
+    let cleanupRemoteGame
+    if (gameId && player && [PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
+      cleanupRemoteGame = startRemoteGame({ gameId, player, onRemotePlayerMove: ({ row, col }) => {
+        // console.log('remote player moved', { row, col })
+        dispatch(mark({ row, col }))
+      }, onRemotePlayerDisconnected: ({ gameId, player }) => {
+        // console.log('remote player disconnected', { gameId, player })
+        dispatch(set({ status: STATUS_ABORTED }))
+      }})
+    }
+
+    return () => {
+      if (cleanupRemoteGame) {
+        cleanupRemoteGame()
+        cleanupRemoteGame = undefined
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId, player, mode])
+
+
   useEffect(() => {
     // console.log('useEffect', { mode, status, turn })
     const unsubscribe = store.subscribe(() => stateChanged(store, onGameOver))
@@ -78,21 +130,19 @@ function Game({ onGameOver }) {
     }
 
     return unsubscribe
-    
-    // use effect for only mount and unmount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [])
 
   let canClick = (mode === PLAY_MODE_LOCAL) ||
-                 (mode === PLAY_MODE_X_VS_BOT && turn === MARK_X) ||
-                 (mode === PLAY_MODE_O_VS_BOT && turn === MARK_O)
+    (turn === MARK_X && [PLAY_MODE_X_VS_BOT, PLAY_MODE_X_VS_REMOTE].includes(mode)) ||
+    (turn === MARK_O && [PLAY_MODE_O_VS_BOT, PLAY_MODE_O_VS_REMOTE].includes(mode))
 
   return (
     <div className={`tic-tac-toe Game`}>
-      <Grid 
-        gridData={grid} 
+      <Grid
+        gridData={grid}
         turn={canClick ? turn : undefined}
-        onClick={(row, col) => canClick && dispatch(mark({ row, col }))} 
+        onClick={(row, col) => canClick && dispatch(mark({ row, col }))}
       />
     </div>
   )
