@@ -1,6 +1,7 @@
-import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics"
+import { initializeApp } from "firebase/app"
 import * as firestore from "firebase/firestore"
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth"
 
 const firebaseConfig = (process.env.NODE_ENV === 'development') ? {
   apiKey: "AIzaSyCfoZFKKOaxF-c0qZQCXrJSzHLe5nAmkBE",
@@ -15,21 +16,24 @@ const firebaseConfig = (process.env.NODE_ENV === 'development') ? {
   projectId: "tic-tac-toe-desmat-ca",
   storageBucket: "tic-tac-toe-desmat-ca.appspot.com",
   messagingSenderId: "484294760836",
-  appId: "1:484294760836:web:1767b8a65ec3d22d15a5d1"
+  appId: "1:484294760836:web:1767b8a65ec3d22d15a5d1",
+  measurementId: "G-FQG06GM7KV"
 }
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig)
 export const db = firestore.getFirestore()
 
-// REMOVE BEFORE SHIPPING
-// window.db = db // ALLOW CONSOLE DEBUG
-// window.firestore = firestore // ALLOW CONSOLE DEBUG
+if (process.env.NODE_ENV === 'development') {
+  window.db = db // enable console debugging
+  window.firestore = firestore // enable console debugging
+} else {  
+  getAnalytics(app)
 
-// anonymous auth only for prod
+  // anonymous auth (prod only)
 
-if (process.env.NODE_ENV !== 'development') {
   const auth = getAuth()
+
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
