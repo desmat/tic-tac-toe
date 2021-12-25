@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === 'development') {
   window.db = db // enable console debugging
   window.firestore = firestore // enable console debugging
 } else {  
-  getAnalytics(app)
+  const analytics = getAnalytics(app)
 
   // anonymous auth (prod only)
 
