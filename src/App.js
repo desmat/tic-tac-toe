@@ -10,6 +10,7 @@ import {
 import {
   PLAY_MODE_LOCAL,
   PLAY_MODE_X_VS_BOT,
+  PLAY_MODE_O_VS_BOT,
   PLAY_MODE_BOT_VS_BOT,
   PLAY_MODE_X_VS_REMOTE,
   PLAY_MODE_O_VS_REMOTE,
@@ -108,10 +109,24 @@ function GameOverMenu({ onClick, element }) {
       {status === STATUS_WIN &&
         <MenuItem 
           message={`${
-            (mode === PLAY_MODE_X_VS_REMOTE && turn === 'x') || (mode === PLAY_MODE_O_VS_REMOTE && turn === 'o') ? 'You win!' :
-            (mode === PLAY_MODE_X_VS_REMOTE && turn === 'o') || (mode === PLAY_MODE_O_VS_REMOTE && turn === 'x') ? 'Remote player wins.' :
-            turn ? `Player ${turn.toUpperCase()} wins.` : 
-            'Game over.'} Play again?`} 
+            (mode === PLAY_MODE_X_VS_REMOTE && turn === 'x') ||
+            (mode === PLAY_MODE_X_VS_BOT && turn === 'x') ||
+            (mode === PLAY_MODE_O_VS_REMOTE && turn === 'o') ||
+            (mode === PLAY_MODE_O_VS_BOT && turn === 'o') 
+            ? 'You win!' :
+            (mode === PLAY_MODE_X_VS_BOT && turn === 'o') ||
+            (mode === PLAY_MODE_BOT_VS_BOT && turn === 'o')
+            ? 'Bot player O wins.' :
+            (mode === PLAY_MODE_O_VS_BOT && turn === 'x') ||
+            (mode === PLAY_MODE_BOT_VS_BOT && turn === 'x')
+            ? 'Bot player X wins.' :
+            (mode === PLAY_MODE_X_VS_REMOTE && turn === 'o') ||
+            (mode === PLAY_MODE_O_VS_REMOTE && turn === 'x') 
+            ? 'Remote player wins.' :
+            turn 
+            ? `Player ${turn.toUpperCase()} wins.` 
+            : 'Game over.'
+          } Play again?`} 
           onClick={newGame} /> }
       <MenuItem message='Back' onClick={() => navigate('/')} />
     </Menu>
