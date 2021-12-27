@@ -25,14 +25,27 @@
     transition: opacity 0.4s ease-in-out;
 }
 
+/* don't transition from last game to new game, 
+   but DO fade in the turn markers, but slighly slower */
+.x.init .Square.free .x, 
+.o.init .Square.free .o {
+    transition: none;
+    animation: init-game-animation 0.8s ease-in;
+}
+
+@keyframes init-game-animation {
+    from {opacity: 0}
+    to {opacity: 0.05}
+}
+
 .Square.free:hover {                
     /* background: rgb(240, 240, 240); */
-    transition: opacity 0.2s ease-in-out;
+    /* transition: opacity 0.2s ease-in-out; */
 }
 
 .Square.free.x:hover .x, 
 .Square.free.o:hover .o {                
-    opacity: 0.1;
+    opacity: 0.2;
     transition: opacity 0.2s ease-in-out;
 }
 
@@ -44,7 +57,7 @@
 }
 
 .Square.mark.x .x, 
-.Square.mark.o .o  {
+.Square.mark.o .o {
     opacity: 1;
     transition: opacity 0.2s ease-out;
 }
