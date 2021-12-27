@@ -141,7 +141,7 @@ function Game({ onGameOver }) {
     (turn === MARK_O && [PLAY_MODE_O_VS_BOT, PLAY_MODE_O_VS_REMOTE].includes(mode))
 
   return (
-    <div className={`tic-tac-toe Game`}>
+    <div className={`tic-tac-toe Game ${mode.toLowerCase()} ${status.toLowerCase()} ${turn}`}>
       <Grid
         gridData={grid}
         turn={canClick ? turn : undefined}
