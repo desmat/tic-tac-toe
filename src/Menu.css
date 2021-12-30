@@ -45,8 +45,10 @@
   cursor: pointer;
 }
 
-.Menu .content.clickable:hover {
-  border: solid 1px black;
+@media (hover: hover) and (pointer: fine) {
+  .Menu .content.clickable:hover {
+    border: solid 1px black;
+  }
 }
 
 .Menu .content.clickable:active {
