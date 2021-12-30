@@ -18,11 +18,22 @@ const initialState = {
   moves: [],
 }
 
-const checkWin = (squares, mark) => {
+const _checkWin = (squares, mark) => {
   if (squares.filter(({ marked }) => marked === mark).length === 3) {
     squares.forEach((square) => square.win = true)
     return true
   }
+}
+
+const checkWin = (grid, turn) => {
+  return _checkWin(grid[0], turn) ||
+         _checkWin(grid[1], turn) ||
+         _checkWin(grid[2], turn) ||
+         _checkWin([grid[0][0], grid[1][0], grid[2][0]], turn) ||
+         _checkWin([grid[0][1], grid[1][1], grid[2][1]], turn) ||
+         _checkWin([grid[0][2], grid[1][2], grid[2][2]], turn) ||
+         _checkWin([grid[0][0], grid[1][1], grid[2][2]], turn) ||
+         _checkWin([grid[0][2], grid[1][1], grid[2][0]], turn)
 }
 
 const checkDraw = (grid) => {
@@ -61,16 +72,13 @@ export const gameSlice = createSlice({
     mark: (state, action) => {
       const { row, col } = action.payload
       const { grid, turn } = state
-      // console.log('game reducer mark', { state, action, mode, turn, grid })
+      // console.log('game reducer mark', { state, action, turn, grid })
       const square = grid[row][col]
 
       if (markSquare(square, turn)) {
         state.moves.push(row * 3 + col)
         const gotDraw = checkDraw(grid)
-        const gotWin = checkWin(grid[row], turn) ||
-                       checkWin([grid[0][col], grid[1][col], grid[2][col]], turn) ||
-                       checkWin([grid[0][0], grid[1][1], grid[2][2]], turn) ||
-                       checkWin([grid[0][2], grid[1][1], grid[2][0]], turn)
+        const gotWin = checkWin(grid, turn)
         
         if (gotWin) {
           state.status = STATUS_WIN

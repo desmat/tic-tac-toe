@@ -226,7 +226,8 @@ function App() {
           <Menu element={gameElement}>
             <MenuItem message="Solo game" onClick={() => newGame(PLAY_MODE_LOCAL)} />
             <MenuItem message="Remote game" onClick={() => navigate('remote')} />
-            <MenuItem message="Play against Bot" onClick={() => newGame(PLAY_MODE_X_VS_BOT)} />
+            <MenuItem message="Play X against Bot" onClick={() => newGame(PLAY_MODE_X_VS_BOT)} />
+            <MenuItem message="Play O against Bot" onClick={() => newGame(PLAY_MODE_O_VS_BOT)} />
             <MenuItem message="Bot against Bot" onClick={() => newGame(PLAY_MODE_BOT_VS_BOT)} />
             <MenuItem message="About" onClick={() => navigate('about')} />
           </Menu>
