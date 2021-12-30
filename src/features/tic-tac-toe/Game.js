@@ -35,7 +35,6 @@ let lastMode, lastStatus, lastTurn, demoActionTimeout, lastMoves = []
 function stateChanged(store) {
   const state = store.getState()
   const mode = selectMode(state)
-  const grid = selectGridData(state)
   const status = selectStatus(state)
   const turn = selectTurn(state)
   const moves = selectMoves(state)
