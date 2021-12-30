@@ -9,6 +9,7 @@ export const [PLAY_MODE_LOCAL, PLAY_MODE_X_VS_BOT, PLAY_MODE_O_VS_BOT, PLAY_MODE
 const initialState = {
   mode: PLAY_MODE_DEMO,
   status: STATUS_INIT,
+  turn: MARK_X,
   grid: [
     [{}, {}, {}],
     [{}, {}, {}],
@@ -63,15 +64,15 @@ export const gameSlice = createSlice({
     reset: (state, action) => {      
       state.mode = (action && action.payload && action.payload.mode) || state.mode // keep same as last game unless otherwise specified
       state.remoteGameId = (action && action.payload && action.payload.remoteGameId) || initialState.remoteGameId
+      state.turn = initialState.turn
       state.status = initialState.status
       state.grid = initialState.grid
       state.moves = initialState.moves
     },
     mark: (state, action) => {
       const { row, col } = action.payload
-      const { grid } = state
-      const turn = selectTurn({ game: state })
-      // console.log('game reducer mark', { state, action, mode, turn, grid })
+      const { grid, turn } = state
+      // console.log('game reducer mark', { state, action, turn, grid })
       const square = grid[row][col]
 
       if (markSquare(square, turn)) {
@@ -85,6 +86,7 @@ export const gameSlice = createSlice({
           state.status = STATUS_DRAW
         } else {
           state.status = STATUS_PLAYING
+          state.turn = turn === MARK_X ? MARK_O : MARK_X
         }
       }
     }
@@ -95,7 +97,7 @@ export const { mark, reset, set } = gameSlice.actions
 
 export const selectGridData = (state) => state.game.grid
 
-export const selectTurn = (state) => state.game.moves && state.game.moves.length && state.game.moves.length % 2 ? MARK_O : MARK_X
+export const selectTurn = (state) => state.game.turn
 
 export const selectMode = (state) => state.game.mode
 
