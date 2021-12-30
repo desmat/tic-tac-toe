@@ -63,23 +63,20 @@
 }
 
 .Square.win {
-    color: red;
+    color: rgb(192, 0, 0);
     animation-name: win-animation;
-    animation-duration: 0.2s;
-    animation-iteration-count: 4;
+    animation-duration: 0.15s;
+    animation-iteration-count: 3;
     animation-direction: alternate;
     animation-timing-function: ease-out;
 }
 
 @keyframes win-animation {
-    from {color: red;}
+    from {color: rgb(192, 0, 0);}
     to {color: black;}
 }
 
 .Menu .Square.win {
     /* don't buzz again when showing the overlayed menu */
     animation-name: none;
-    /* a bit more subtle when under the menu */
-    transition: color 0.8s ease-in-out;
-    color: rgb(128, 0, 0);
 }
