@@ -62,12 +62,13 @@ function stateChanged(store, onGameOver) {
       (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
       // bot plays
       setTimeout(() => {
-        store.dispatch(mark(bot.nextMove(grid)))
+        store.dispatch(mark(bot.bestMove(moves)))
       }, Math.floor(Math.random() * 5) * 100 + 200)
     } else if (mode === PLAY_MODE_DEMO && [STATUS_INIT, STATUS_PLAYING].includes(status)) {
       // bot plays in demo mode (slower)
       demoActionTimeout = setTimeout(() => {
-        store.dispatch(mark(bot.nextMove(grid)))
+        // next move: better than random but not too smart
+        store.dispatch(mark(bot.bestMove(moves, 2)))
       }, Math.floor(Math.random() * 10) * 100 + 500)
     } else if (mode === PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW].includes(status)) {
       // restart demo game until real game

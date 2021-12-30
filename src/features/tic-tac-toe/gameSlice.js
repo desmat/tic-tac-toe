@@ -9,7 +9,6 @@ export const [PLAY_MODE_LOCAL, PLAY_MODE_X_VS_BOT, PLAY_MODE_O_VS_BOT, PLAY_MODE
 const initialState = {
   mode: PLAY_MODE_DEMO,
   status: STATUS_INIT,
-  turn: MARK_X,
   grid: [
     [{}, {}, {}],
     [{}, {}, {}],
@@ -18,11 +17,22 @@ const initialState = {
   moves: [],
 }
 
-const checkWin = (squares, mark) => {
+const _checkWin = (squares, mark) => {
   if (squares.filter(({ marked }) => marked === mark).length === 3) {
     squares.forEach((square) => square.win = true)
     return true
   }
+}
+
+const checkWin = (grid, turn) => {
+  return _checkWin(grid[0], turn) ||
+         _checkWin(grid[1], turn) ||
+         _checkWin(grid[2], turn) ||
+         _checkWin([grid[0][0], grid[1][0], grid[2][0]], turn) ||
+         _checkWin([grid[0][1], grid[1][1], grid[2][1]], turn) ||
+         _checkWin([grid[0][2], grid[1][2], grid[2][2]], turn) ||
+         _checkWin([grid[0][0], grid[1][1], grid[2][2]], turn) ||
+         _checkWin([grid[0][2], grid[1][1], grid[2][0]], turn)
 }
 
 const checkDraw = (grid) => {
@@ -53,24 +63,21 @@ export const gameSlice = createSlice({
     reset: (state, action) => {      
       state.mode = (action && action.payload && action.payload.mode) || state.mode // keep same as last game unless otherwise specified
       state.remoteGameId = (action && action.payload && action.payload.remoteGameId) || initialState.remoteGameId
-      state.turn = initialState.turn
       state.status = initialState.status
       state.grid = initialState.grid
       state.moves = initialState.moves
     },
     mark: (state, action) => {
       const { row, col } = action.payload
-      const { grid, turn } = state
+      const { grid } = state
+      const turn = selectTurn({ game: state })
       // console.log('game reducer mark', { state, action, mode, turn, grid })
       const square = grid[row][col]
 
       if (markSquare(square, turn)) {
         state.moves.push(row * 3 + col)
         const gotDraw = checkDraw(grid)
-        const gotWin = checkWin(grid[row], turn) ||
-                       checkWin([grid[0][col], grid[1][col], grid[2][col]], turn) ||
-                       checkWin([grid[0][0], grid[1][1], grid[2][2]], turn) ||
-                       checkWin([grid[0][2], grid[1][1], grid[2][0]], turn)
+        const gotWin = checkWin(grid, turn)
         
         if (gotWin) {
           state.status = STATUS_WIN
@@ -78,7 +85,6 @@ export const gameSlice = createSlice({
           state.status = STATUS_DRAW
         } else {
           state.status = STATUS_PLAYING
-          state.turn = turn === MARK_X ? MARK_O : MARK_X
         }
       }
     }
@@ -89,7 +95,7 @@ export const { mark, reset, set } = gameSlice.actions
 
 export const selectGridData = (state) => state.game.grid
 
-export const selectTurn = (state) => state.game.turn
+export const selectTurn = (state) => state.game.moves && state.game.moves.length && state.game.moves.length % 2 ? MARK_O : MARK_X
 
 export const selectMode = (state) => state.game.mode
 
