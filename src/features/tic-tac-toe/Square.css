@@ -22,44 +22,44 @@
 .x .Square.free .x, 
 .o .Square.free .o {
     opacity: 0.05;
-    transition: opacity 0.4s ease-in-out;
+    animation: show-turn-marker-animation 0.5s ease-in-out;
+
 }
 
-/* don't transition from last game to new game, 
-   but DO fade in the turn markers, but slighly slower */
+/* fade in the turn markers, but slighly slower */
 .x.init .Square.free .x, 
 .o.init .Square.free .o {
-    transition: none;
-    animation: init-game-animation 0.8s ease-in;
+    animation: show-turn-marker-animation 1s ease-in;
 }
 
-@keyframes init-game-animation {
+@keyframes show-turn-marker-animation {
     from {opacity: 0}
     to {opacity: 0.05}
 }
 
-.Square.free:hover {                
-    /* background: rgb(240, 240, 240); */
-    /* transition: opacity 0.2s ease-in-out; */
+@media (hover: hover) and (pointer: fine) {
+    .Square.free:hover {                
+        /* background: rgb(240, 240, 240); */
+        /* transition: opacity 0.2s ease-in-out; */
+    }
 }
 
-.Square.free.x:hover .x, 
-.Square.free.o:hover .o {                
-    opacity: 0.2;
-    transition: opacity 0.2s ease-in-out;
+@media (hover: hover) and (pointer: fine) {
+    .Square.free.x:hover .x, 
+    .Square.free.o:hover .o {                
+        opacity: 0.2;
+    }
 }
 
 .Square.free.x:active .x,
 .Square.free.o:active .o {
     color: darkred;
     opacity: 0.5;
-    transition: opacity 0.2s ease-out;
 }
 
 .Square.mark.x .x, 
 .Square.mark.o .o {
     opacity: 1;
-    transition: opacity 0.2s ease-out;
 }
 
 .Square.win {
@@ -79,4 +79,7 @@
 .Menu .Square.win {
     /* don't buzz again when showing the overlayed menu */
     animation-name: none;
+    /* a bit more subtle when under the menu */
+    transition: color 0.6s ease-in;
+    color: rgb(128, 0, 0);
 }
