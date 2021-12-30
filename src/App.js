@@ -93,6 +93,26 @@ function FindRemoteGameMenu({ element }) {
   )
 }
 
+function AboutMenu({ element }) {
+  const navigate = useNavigate()
+
+  return (
+    <Menu element={element}>
+    <div>
+      <p style={{ textAlign: "center" }}>
+        <i>A simple web app utilizing latest tech and best practice from the React ecosystem</i>
+        <br />
+        <br />
+        <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
+      </p>
+    </div>
+    <div>
+      <MenuItem message="Back" onClick={() => navigate('/')} />
+    </div>
+  </Menu>
+  )
+}
+
 function GameOverMenu({ onClick, element }) {
   const mode = useSelector(selectMode)
   const status = useSelector(selectStatus)
@@ -133,35 +153,51 @@ function GameOverMenu({ onClick, element }) {
   )
 }
 
-function AboutMenu({ element }) {
-  const navigate = useNavigate()
-
-  return (
-    <Menu element={element}>
-    <div>
-      <p style={{ textAlign: "center" }}>
-        <i>A simple web app utilizing latest tech and best practice from the React ecosystem</i>
-        <br />
-        <br />
-        <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
-      </p>
-    </div>
-    <div>
-      <MenuItem message="Back" onClick={() => navigate('/')} />
-    </div>
-  </Menu>
-  )
-}
-
 function GameContainer({ element }) {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { mode = PLAY_MODE_LOCAL, id } = useParams()
+  const status = useSelector(selectStatus)
+  const [showGameOverMenu, setShowGameOverMenu] = useState()
+  const newGame = (mode, id) => {
+    if ([PLAY_MODE_X_VS_REMOTE].includes(mode)) {
+      navigate('/remote/start')
+    } else if ([PLAY_MODE_O_VS_REMOTE].includes(mode)) {
+      navigate('/remote')
+    } else {
+      dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: id }))
+    }
+  }
 
+  // trigger new game on mode and/or id changes
   useEffect(() => {
     // console.log('GameContainer useEffect', { mode, id })
-    dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: id }))
+    newGame(mode, id)
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, id])
+
+  // show the game over menu after a short delay
+  useEffect(() => {
+    // console.log('GameContainer useEffect', { status })
+    let timeout
+    if ([STATUS_WIN, STATUS_DRAW, STATUS_ABORTED].includes(status)) {
+      timeout = setTimeout(() => {
+        setShowGameOverMenu(true)
+      }, status === STATUS_WIN ? 1250 : 250)  
+    }
+
+    return () => {
+      // console.log('GameContainer useEffect cleanup', { status })
+      clearTimeout(timeout)
+      setShowGameOverMenu(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status])
+
+  if (showGameOverMenu) {
+    return <GameOverMenu onClick={newGame} element={element} />
+  }
 
   return (
     <div className={`GameContainer}`}>
@@ -174,11 +210,6 @@ function GameContainer({ element }) {
 
 function App() {
   const navigate = useNavigate()
-  const gameOver = ({ status }) => {
-    setTimeout(() => {
-      navigate('/play/gameover')
-    }, status === STATUS_WIN ? 1250 : 250)
-  }
   const newGame = (mode) => {
     if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
       navigate('/remote')
@@ -186,7 +217,7 @@ function App() {
       navigate(`/play${mode === PLAY_MODE_LOCAL ? '' : `/${mode.toLowerCase()}`}`)
     }
   }
-  const gameElement = <Game onGameOver={gameOver} />
+  const gameElement = <Game />
 
   return (
     <div className="App">
@@ -199,10 +230,6 @@ function App() {
             <MenuItem message="Bot against Bot" onClick={() => newGame(PLAY_MODE_BOT_VS_BOT)} />
             <MenuItem message="About" onClick={() => navigate('about')} />
           </Menu>
-        } />
-
-        <Route path={'play/gameover'} element={
-          <GameOverMenu onClick={newGame} element={gameElement} />
         } />
 
         <Route path={'play'} element={

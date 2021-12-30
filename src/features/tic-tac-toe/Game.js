@@ -32,7 +32,7 @@ import './Game.css'
 
 let lastMode, lastStatus, lastTurn, demoActionTimeout, lastMoves = []
 
-function stateChanged(store, onGameOver) {
+function stateChanged(store) {
   const state = store.getState()
   const mode = selectMode(state)
   const grid = selectGridData(state)
@@ -55,10 +55,7 @@ function stateChanged(store, onGameOver) {
     }
 
     // process locally
-    if (mode !== PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW, STATUS_ABORTED].includes(status)) {
-      // game over
-      onGameOver && onGameOver({ mode, status })
-    } else if ((mode === PLAY_MODE_X_VS_BOT && turn === MARK_O) ||
+    if ((mode === PLAY_MODE_X_VS_BOT && turn === MARK_O) ||
       (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
       // bot plays
       setTimeout(() => {
@@ -85,7 +82,7 @@ function stateChanged(store, onGameOver) {
 
 let lastGameId 
 
-function Game({ onGameOver }) {
+function Game() {
   const dispatch = useDispatch()
   const store = useStore()
   const grid = useSelector(selectGridData)
@@ -96,7 +93,6 @@ function Game({ onGameOver }) {
 
   useEffect(() => {
     // console.log('Game useEffect', { gameId, mode })
-
     if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
       clearTimeout(demoActionTimeout)
     }
@@ -125,7 +121,7 @@ function Game({ onGameOver }) {
 
   useEffect(() => {
     // console.log('useEffect', { mode, status, turn })
-    const unsubscribe = store.subscribe(() => stateChanged(store, onGameOver))
+    const unsubscribe = store.subscribe(() => stateChanged(store))
 
     // kick off demo mode initially
     if (mode === PLAY_MODE_DEMO && status === STATUS_INIT) {
