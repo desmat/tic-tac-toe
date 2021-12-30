@@ -138,34 +138,26 @@ const calcMoves = (moves, depth) => {
 }
 
 /* more sophisticated algorithm for finding the best next move, based on a depth-first search for possible outcomes */
-export const bestMove = (moves, maxDepth = 7) => {
+export const bestMove = (moves, maxDepth = 9) => {
   // console.log('bestMove', { moves, maxDepth })
 
-  // pick at random first few moves: a bit more fun to the user than grabbing the corners and never losing
-  if ([0, 1].includes(moves.length)) {
-    return nextMove(moves) 
+  // cheat the first moves: get those corners and/or center first moves
+  if (maxDepth > 7) {
+    if (moves.length === 0) {   
+      // corner or center
+      const startingMoves = [0, 2, 4, 6, 8]
+      const startingMove = startingMoves[Math.floor(Math.random() * startingMoves.length)]
+      return intToMoveObj(startingMove)
+    } else if (moves.length === 1 && [0, 2, 6, 8].includes(moves[0])) {
+      // block the center!
+      return intToMoveObj(4)
+    } else if (moves.length === 1 && moves[0] === 4) {
+      // block the corner!
+      return { row: Math.round(Math.random()) * 2, col: Math.round(Math.random()) * 2 }
+    }
   }
 
-  // // pick at random first few moves: a bit more fun to the user than grabbing the corners and never losing
-  // if ([0].includes(moves.length)) {
-  //   return nextMove(moves) 
-  // }
-
-  // // special cases: get those corners and/or center first thing
-  // if (moves.length === 0) {   
-  //   // corner or center
-  //   const startingMoves = [0, 2, 4, 6, 8]
-  //   const startingMove = startingMoves[Math.floor(Math.random() * startingMoves.length)]
-  //   return intToMoveObj(startingMove)
-  // } else if (moves.length === 1 && [0, 2, 6, 8].includes(moves[0])) {
-  //   // block the center!
-  //   return intToMoveObj(4)
-  // } else if (moves.length === 1 && moves[0] === 4) {
-  //   // block the corner!
-  //   return { row: Math.round(Math.random()) * 2, col: Math.round(Math.random()) * 2 }
-  // }
-
-  const calculatedMoves = calcMoves(moves, maxDepth)
+  const calculatedMoves = calcMoves(moves, Math.min(7, maxDepth))
   // console.log('calculated moves', { calculatedMoves })
 
   let bestMove

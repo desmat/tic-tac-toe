@@ -55,11 +55,12 @@ function stateChanged(store) {
     }
 
     // process locally
-    if ((mode === PLAY_MODE_X_VS_BOT && turn === MARK_O) ||
-      (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
+    if ((mode === PLAY_MODE_X_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status) && turn === MARK_O) ||
+        (mode === PLAY_MODE_O_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status) && turn === MARK_X) ||
+        (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
       // bot plays
       setTimeout(() => {
-        store.dispatch(mark(bot.bestMove(moves)))
+        store.dispatch(mark(bot.bestMove(moves, mode === PLAY_MODE_BOT_VS_BOT ? 7 : 9)))
       }, Math.floor(Math.random() * 5) * 100 + 200)
     } else if (mode === PLAY_MODE_DEMO && [STATUS_INIT, STATUS_PLAYING].includes(status)) {
       // bot plays in demo mode (slower)
