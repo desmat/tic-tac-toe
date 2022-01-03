@@ -11,10 +11,12 @@ import {
   PLAY_MODE_X_VS_REMOTE,
   PLAY_MODE_O_VS_REMOTE,
   STATUS_INIT,
+  STATUS_WAITING,
   STATUS_PLAYING,
   STATUS_WIN,
   STATUS_DRAW,
   STATUS_ABORTED,
+  STATUS_ERROR,
   PLAY_MODE_LOCAL,
   mark,
   reset,
@@ -26,11 +28,11 @@ import {
   selectMoves,
   selectRemoteGameId,
 } from './gameSlice'
-import { recordRemoteGameMove, startRemoteGame } from './remoteGame'
+import { recordRemoteGameMove, getRemoteGame, startRemoteGame } from './remoteGame'
 import Grid from './Grid'
 import './Game.css'
 
-let lastMode, lastStatus, lastTurn, demoActionTimeout, lastMoves = []
+let lastMode, lastStatus, lastTurn, lastMoves
 
 function stateChanged(store) {
   const state = store.getState()
@@ -45,7 +47,9 @@ function stateChanged(store) {
     // console.log('store changed', { mode, status, turn, moves, remoteGameId })
 
     // update remote game
-    if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode) && remoteGameId && moves && moves.length !== lastMoves.length) {
+    if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode) && 
+        [STATUS_PLAYING, STATUS_WIN, STATUS_DRAW].includes(status) &&
+        remoteGameId && moves && moves.length !== lastMoves.length) {
       const player = moves.length % 2 ? 'x' : 'o' // x is always odd
       // console.log('stateUpdated: PLAY_MODE_-_VS_REMOTE', { mode, player, turn, status, moves })
       if ((mode === PLAY_MODE_X_VS_REMOTE && player === 'x') ||
@@ -55,8 +59,9 @@ function stateChanged(store) {
     }
 
     // process locally
-    if ((mode === PLAY_MODE_X_VS_BOT && turn === MARK_O) ||
-      (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
+    if ((mode === PLAY_MODE_X_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status) && turn === MARK_O) ||
+        (mode === PLAY_MODE_O_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status) && turn === MARK_X) ||
+        (mode === PLAY_MODE_BOT_VS_BOT && [STATUS_INIT, STATUS_PLAYING].includes(status))) {
       // bot plays
       setTimeout(() => {
         store.dispatch(mark(bot.nextMove(grid)))
@@ -69,7 +74,7 @@ function stateChanged(store) {
     } else if (mode === PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW].includes(status)) {
       // restart demo game until real game
       demoActionTimeout = setTimeout(() => {
-        store.dispatch(reset({ mode: PLAY_MODE_DEMO }))
+        store.dispatch(reset({ mode: PLAY_MODE_DEMO, status: STATUS_PLAYING }))
       }, 3000)
     }
   }
@@ -80,7 +85,7 @@ function stateChanged(store) {
   lastMoves = moves
 }
 
-let lastGameId 
+let demoActionTimeout, cleanupRemoteGame, joinedGameId, remotePlayerConnected
 
 function Game() {
   const dispatch = useDispatch()
@@ -91,36 +96,71 @@ function Game() {
   const turn = useSelector(selectTurn)
   const gameId = useSelector(selectRemoteGameId)
 
+  // trigger on gameId, mode, status updates
   useEffect(() => {
-    // console.log('Game useEffect', { gameId, mode })
+    // console.log('Game useEffect', { mode, gameId, status, joinedGameId })
+    
+    // kill the demo mode
     if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
       clearTimeout(demoActionTimeout)
     }
 
-    let cleanupRemoteGame
-    if (gameId && gameId !== lastGameId && [PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
-      lastGameId = gameId // useEffect will fire with same params when switching menus
-      cleanupRemoteGame = startRemoteGame({ gameId, player: mode[0].toLowerCase(), onRemotePlayerMove: ({ row, col }) => {
-        // console.log('remote player moved', { row, col })
-        dispatch(mark({ row, col }))
-      }, onRemotePlayerDisconnected: ({ gameId, player }) => {
-        // console.log('remote player disconnected', { gameId, player })
-        dispatch(set({ status: STATUS_ABORTED }))
-      }})
+    // remote game hookup
+    if (mode.includes('REMOTE') && [STATUS_INIT, STATUS_WAITING].includes(status) &&
+        gameId && gameId !== joinedGameId) {
+      // lookup the game we may or may not want to join, as player x or o depending on status
+      getRemoteGame({ gameId }).then((game) => {
+        // console.log('> LOOKING AT REMOTE GAME <', { game })
+
+        // TODO provide userId
+        // NOTE: player_x creates the game and is the first to join at status INIT, then flips status to WAITING
+        startRemoteGame({ gameId, player: game.status === STATUS_INIT ? 'x' : 'o',
+          onRemotePlayerMove: ({ row, col }) => {
+            // console.log('remote player moved', { row, col })
+            dispatch(mark({ row, col }))
+          }, 
+          onRemotePlayerConnected: () => {
+            // console.log('remote player connected', { gameId })
+            remotePlayerConnected = true
+            dispatch(set({ status: STATUS_PLAYING }))
+          }, 
+          onRemotePlayerDisconnected: () => {
+            // console.log('remote player disconnected', { gameId })
+            remotePlayerConnected = false
+            dispatch(set({ status: STATUS_ABORTED }))
+          },
+          onError: ({ gameId, error }) => {
+            console.error('Error starting remote game', { gameId, error })
+            dispatch(set({ status: STATUS_ERROR }))
+          }
+        }).then((cleanup) => {
+          // console.log('startRemoteGame success', { gameId, cleanup })
+          cleanupRemoteGame = cleanup
+          joinedGameId = gameId
+          remotePlayerConnected = false
+          if (status === STATUS_INIT) {
+            dispatch(set({ status: STATUS_WAITING }))
+          }
+        })
+      })
     }
 
     return () => {
-      // console.log('Game useEffect cleanup', { gameId, mode })
-      if (cleanupRemoteGame) {
+      // console.log('Game useEffect cleanup', { mode, gameId, status, joinedGameId, remotePlayerConnected, cleanupRemoteGame })      
+      if (cleanupRemoteGame && (
+          (status === STATUS_WAITING && !remotePlayerConnected) /* game created and no one joined */ ||           
+          (status === STATUS_PLAYING) /* leave ongoing game */ ||
+          (status === STATUS_ABORTED) /* remote player left ongoing game */ )) {
         cleanupRemoteGame()
+        cleanupRemoteGame = undefined
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId, mode])
+  }, [gameId, mode, status])
 
-
+  // trigger initially
   useEffect(() => {
-    // console.log('useEffect', { mode, status, turn })
+    // console.log('Game useEffect', {})
     const unsubscribe = store.subscribe(() => stateChanged(store))
 
     // kick off demo mode initially
@@ -128,7 +168,10 @@ function Game() {
       dispatch(reset({ mode: PLAY_MODE_DEMO }))
     }
 
-    return unsubscribe
+    return () => {
+      // console.log('Game useEffect cleanup', {})
+      unsubscribe()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

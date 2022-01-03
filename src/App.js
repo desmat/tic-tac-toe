@@ -1,222 +1,52 @@
-import { useState, useEffect } from 'react'
 import { FaRedoAlt, FaArrowLeft } from 'react-icons/fa'
-import { useDispatch, useSelector } from 'react-redux'
 import {
   Route,
   Routes,
   useNavigate,
-  useParams,
 } from "react-router-dom"
 import {
   PLAY_MODE_LOCAL,
   PLAY_MODE_X_VS_BOT,
-  PLAY_MODE_O_VS_BOT,
   PLAY_MODE_BOT_VS_BOT,
-  PLAY_MODE_X_VS_REMOTE,
-  PLAY_MODE_O_VS_REMOTE,
-  STATUS_WIN, 
-  STATUS_DRAW,
-  STATUS_ABORTED,
-  reset,
-  selectTurn,
-  selectStatus,
-  selectMode,
 } from './features/tic-tac-toe/gameSlice'
 import Game from './features/tic-tac-toe/Game'
+import { GameContainer, FindRemoteGameMenu } from './Game'
 import { Menu, MenuItem } from './Menu'
-import { createRemoteGame, findRemoteGames, joinRemoteGame } from './features/tic-tac-toe/remoteGame'
 import './App.css'
-
-function CreateRemoteGameMenu({ element }) {
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    // console.log('useEffect', {})
-    const cleanup = createRemoteGame({ onSuccess: (gameId) => {
-      console.log('game created', { gameId })
-    }, onRemotePlayerJoined: (gameId) => {
-      console.log('player o joined', { gameId })
-      navigate(`/play/x_vs_remote/${gameId}`)  
-    }})
-
-    return cleanup
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return (
-    <Menu element={element}>
-      <div>
-        <p>
-          <i>Waiting for player to join...</i>          
-        </p>
-      </div>
-      <div>
-        <MenuItem message="Back" onClick={() => navigate('/remote')} />
-      </div>
-    </Menu>
-  )
-}
-
-function FindRemoteGameMenu({ element }) {
-  const navigate = useNavigate()
-  const [games, setGames] = useState([])
-  const join = (gameId) => {
-    joinRemoteGame({ gameId, player: 'o', onSuccess: () => {
-      navigate(`/play/o_vs_remote/${gameId}`)  
-    }})
-  }
-
-  useEffect(() => {
-    const cleanup = findRemoteGames(setGames)
-
-    return cleanup
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return (
-    <Menu element={element}>
-      <div>
-        <p>
-          {(!games || games.length === 0)
-            && <i>Looking for games...</i>
-          }
-        </p>
-      </div>
-      <div>
-        {games && games.length > 0 
-          && games.map((id) => <MenuItem key={id} message={`Join ${id}`} onClick={() => join(id)} />)
-        }
-        <MenuItem message="Start new game" onClick={() => navigate('start')} />
-        <MenuItem message="Back" onClick={() => navigate('/')} />
-      </div>
-    </Menu>
-  )
-}
 
 function AboutMenu({ element }) {
   const navigate = useNavigate()
 
   return (
     <Menu element={element}>
-    <div>
-      <p style={{ textAlign: "center" }}>
-        <i>A simple web app utilizing latest tech and best practice from the React ecosystem</i>
-        <br />
-        <br />
-        <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
-      </p>
-    </div>
-    <div>
-      <MenuItem message="Back" onClick={() => navigate('/')} />
-    </div>
-  </Menu>
-  )
-}
-
-function GameOverMenu({ onClick, element }) {
-  const mode = useSelector(selectMode)
-  const status = useSelector(selectStatus)
-  const turn = useSelector(selectTurn)
-  const navigate = useNavigate()
-  const newGame = () => onClick(mode)
-
-  return (
-    <Menu transition="true" element={element}>
-      {status === STATUS_ABORTED &&
-        <p><i>Remote player disconnected</i></p> }      
-      {status === STATUS_DRAW &&
-        <MenuItem message="Draw. Play again?" onClick={newGame} /> }      
-      {status === STATUS_WIN &&
-        <MenuItem 
-          message={`${
-            (mode === PLAY_MODE_X_VS_REMOTE && turn === 'x') ||
-            (mode === PLAY_MODE_X_VS_BOT && turn === 'x') ||
-            (mode === PLAY_MODE_O_VS_REMOTE && turn === 'o') ||
-            (mode === PLAY_MODE_O_VS_BOT && turn === 'o') 
-            ? 'You win!' :
-            (mode === PLAY_MODE_X_VS_BOT && turn === 'o') ||
-            (mode === PLAY_MODE_BOT_VS_BOT && turn === 'o')
-            ? 'Bot player O wins.' :
-            (mode === PLAY_MODE_O_VS_BOT && turn === 'x') ||
-            (mode === PLAY_MODE_BOT_VS_BOT && turn === 'x')
-            ? 'Bot player X wins.' :
-            (mode === PLAY_MODE_X_VS_REMOTE && turn === 'o') ||
-            (mode === PLAY_MODE_O_VS_REMOTE && turn === 'x') 
-            ? 'Remote player wins.' :
-            turn 
-            ? `Player ${turn.toUpperCase()} wins.` 
-            : 'Game over.'
-          } Play again?`} 
-          onClick={newGame} /> }
-      <MenuItem message='Back' onClick={() => navigate('/')} />
-    </Menu>
-  )
-}
-
-function GameContainer({ element }) {
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const { mode = PLAY_MODE_LOCAL, id } = useParams()
-  const status = useSelector(selectStatus)
-  const [showGameOverMenu, setShowGameOverMenu] = useState()
-  const newGame = (mode, id) => {
-    if ([PLAY_MODE_X_VS_REMOTE].includes(mode)) {
-      navigate('/remote/start')
-    } else if ([PLAY_MODE_O_VS_REMOTE].includes(mode)) {
-      navigate('/remote')
-    } else {
-      dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: id }))
-    }
-  }
-
-  // trigger new game on mode and/or id changes
-  useEffect(() => {
-    // console.log('GameContainer useEffect', { mode, id })
-    newGame(mode, id)
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, id])
-
-  // show the game over menu after a short delay
-  useEffect(() => {
-    // console.log('GameContainer useEffect', { status })
-    let timeout
-    if ([STATUS_WIN, STATUS_DRAW, STATUS_ABORTED].includes(status)) {
-      timeout = setTimeout(() => {
-        setShowGameOverMenu(true)
-      }, status === STATUS_WIN ? 1250 : 250)  
-    }
-
-    return () => {
-      // console.log('GameContainer useEffect cleanup', { status })
-      clearTimeout(timeout)
-      setShowGameOverMenu(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
-
-  if (showGameOverMenu) {
-    return <GameOverMenu onClick={newGame} element={element} />
-  }
-
-  return (
-    <div className={`GameContainer}`}>
-      <div className="element">
-        {element}
+      <div>
+        <p style={{ textAlign: "center" }}>
+          <i>A simple web app utilizing latest tech and best practice from the React ecosystem</i>
+          <br />
+          <br />
+          <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
+        </p>
       </div>
-    </div>
+      <div>
+        <MenuItem message="Back" onClick={() => navigate('/')} />
+      </div>
+    </Menu>
   )
 }
 
 function App() {
   const navigate = useNavigate()
+  
   const newGame = (mode) => {
-    if ([PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE].includes(mode)) {
-      navigate('/remote')
+    if (mode === PLAY_MODE_LOCAL) {
+      navigate('/play')
+    } else if (mode === PLAY_MODE_X_VS_BOT) {
+      navigate('/play/bot')
     } else {
-      navigate(`/play${mode === PLAY_MODE_LOCAL ? '' : `/${mode.toLowerCase()}`}`)
+      navigate(`/play/${mode.toLowerCase()}`)
     }
   }
+  
   const gameElement = <Game />
 
   return (
@@ -235,21 +65,17 @@ function App() {
         <Route path={'play'} element={
           <GameContainer element={gameElement} />
         } />
-        
+
         <Route path={'play/:mode'} element={
           <GameContainer element={gameElement} />
         } />
-        
+
         <Route path={'play/:mode/:id'} element={
           <GameContainer element={gameElement} />
         } />
-        
+
         <Route path={'remote'} element={
           <FindRemoteGameMenu element={gameElement} />
-        } />
-
-        <Route path={'remote/start'} element={
-          <CreateRemoteGameMenu element={gameElement} />
         } />
 
         <Route path={'about'} element={
@@ -264,7 +90,7 @@ function App() {
       </Routes>
 
       <div className='HomeIcon' title="Back to main menu" onClick={() => navigate('/')}>
-          <FaArrowLeft />
+        <FaArrowLeft />
       </div>
 
       {/* force reload - DEBUG ONLY */}
