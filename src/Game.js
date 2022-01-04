@@ -165,22 +165,22 @@ export function GameContainer({ element }) {
 
   // trigger on mode, id and gameStatus
   useEffect(() => {
-    if (mode.toUpperCase().includes('REMOTE')) {
+    if (mode.includes('remote')) {
       if (id && !createdGameId && id !== lastGameId) {
         // local player o joining a game created by a remote player x
         // also dispatch reset instead of set to avoid leaving the previous game in the
         // background when setting up the next game
         dispatch(reset({ mode: PLAY_MODE_O_VS_REMOTE, gameToJoin: id })) 
+      } else if (!id && !createdGameId) {
+        createRemoteGame().then(({ gameId }) => {
+          // console.log('game created', { gameId })
+          createdGameId = gameId
+          // game creator is local player x
+          // also dispatch set instead of reset to leave the previous game behind while we wait
+          dispatch(set({ gameToJoin: gameId }))
+          navigate(`/play/remote/${gameId}`)
+        })
       }
-    } else if (id && !createdGameId) {
-      createRemoteGame().then(({ gameId }) => {
-        // console.log('game created', { gameId })
-        createdGameId = gameId
-        // game creator is local player x
-        // also dispatch set instead of reset to leave the previous game behind while we wait
-        dispatch(set({ gameToJoin: gameId }))
-        navigate(`/play/remote/${gameId}`)
-      })
     }
 
     lastGameId = id
