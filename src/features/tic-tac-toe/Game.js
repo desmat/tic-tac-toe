@@ -106,8 +106,6 @@ function Game() {
   // trigger to cleanup remote resources beyond the games own lifecycle,
   // such as user navigating away from game screen
   useEffect(() => {
-    // console.log('Game useEffect', { mode, gameId, status, gameToCleanup })
-
     if (gameToCleanup && gameToCleanup === gameId) {
       if (cleanupRemoteGame) {
         cleanupRemoteGame()
@@ -127,10 +125,8 @@ function Game() {
 
   // trigger to cleanup remote resources based on the game's lifecycle
   useEffect(() => {
-    // console.log('Game useEffect', { mode, gameId, status })
     
     return () => {
-      // console.log('Game useEffect cleanup', { mode, gameId, status, joinedGameId, cleanupRemoteGame })      
       // game terminated, ie status moved from PLAYING to (WIN, DRAW, ABORTED, ERROR)
       if (cleanupRemoteGame && (status === STATUS_PLAYING && gameId === joinedGameId)) {
         // console.log('Game useEffect cleanup CLEANUP', { mode, gameId, status })      
@@ -138,15 +134,13 @@ function Game() {
         cleanupRemoteGame = undefined
       }
     }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId, mode, status])
 
 
   // trigger on gameId, mode, status and createdGameId updates
   useEffect(() => {
-    // console.log('Game useEffect', { mode, gameId, gameToJoin, joinedGameId })
-    
+   
     // kill the demo mode
     if (mode !== PLAY_MODE_DEMO && demoActionTimeout) {
       clearTimeout(demoActionTimeout)
@@ -196,7 +190,6 @@ function Game() {
 
   // trigger on page load: kick off the demo mode in the background
   useEffect(() => {
-    // console.log('Game useEffect', {})
     const unsubscribe = store.subscribe(() => storeStateChanged(store))
 
     // kick off demo mode initially
@@ -204,10 +197,7 @@ function Game() {
       dispatch(reset({ mode: PLAY_MODE_DEMO, status: STATUS_PLAYING }))
     }
 
-    return () => {
-      // console.log('Game useEffect cleanup', {})
-      unsubscribe()
-    }
+    return unsubscribe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

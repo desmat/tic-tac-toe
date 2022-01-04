@@ -84,7 +84,6 @@ export async function getRemoteGame({ gameId, onRemotePlayerMove, onRemotePlayer
   }
 }
 
-// TODO remove all uses of playerId
 export async function startRemoteGame({ gameId, player, onRemotePlayerMove, onRemotePlayerConnected, onRemotePlayerDisconnected, onError }) {
   // console.log('startRemoteGame', { gameId, player })
 
