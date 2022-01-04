@@ -23,24 +23,30 @@ const firebaseConfig = (process.env.NODE_ENV === 'development') ? {
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig)
 export const db = firestore.getFirestore()
+export let auth
 
 if (process.env.NODE_ENV === 'development') {
-  window.db = db // enable console debugging
-  window.firestore = firestore // enable console debugging
+  // mock auth.currentUser.uid (dev only)
+  auth = { currentUser: { uid: Math.floor(Math.random() * 100)}}
+
+  // enable console debugging (dev only)
+  window.auth = auth
+  window.db = db 
+  window.firestore = firestore
 } else {  
+  // setup google analytics (prod only)
   getAnalytics(app)
 
   // anonymous auth (prod only)
 
-  const auth = getAuth()
-
+  auth = getAuth()
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
       // // User is signed in, see docs for a list of available properties
       // // https://firebase.google.com/docs/reference/js/firebase.User
       // const uid = user.uid
-      // console.log('onAuthStateChanged', { uid })
+      // console.log('onAuthStateChanged', { uid: user.uid })
     } else {
       // // User is signed out
       // console.log('onAuthStateChanged signed out')

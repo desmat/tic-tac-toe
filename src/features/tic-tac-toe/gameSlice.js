@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 
 export const [MARK_X, MARK_O] = ['x', 'o']
 
-export const [STATUS_INIT, STATUS_DEMO, STATUS_PLAYING, STATUS_WIN, STATUS_DRAW, STATUS_ABORTED] = ['INIT', 'DEMO', 'PLAYING', 'WIN', 'DRAW', 'ABORTED']
+export const [STATUS_INIT, STATUS_DEMO, STATUS_WAITING, STATUS_PLAYING, STATUS_WIN, STATUS_DRAW, STATUS_ABORTED, STATUS_ERROR] = ['INIT', 'DEMO', 'WAITING', 'PLAYING', 'WIN', 'DRAW', 'ABORTED', 'ERROR']
 
 export const [PLAY_MODE_LOCAL, PLAY_MODE_X_VS_BOT, PLAY_MODE_O_VS_BOT, PLAY_MODE_BOT_VS_BOT, PLAY_MODE_DEMO, PLAY_MODE_X_VS_REMOTE, PLAY_MODE_O_VS_REMOTE] = ['LOCAL', 'X_VS_BOT', 'O_VS_BOT', 'BOT_VS_BOT', 'DEMO', 'X_VS_REMOTE', 'O_VS_REMOTE']
 
@@ -15,7 +15,7 @@ const initialState = {
     [{}, {}, {}],
     [{}, {}, {}],
   ],
-  moves: [],
+  moves: [],  
 }
 
 const checkWin = (squares, mark) => {
@@ -45,23 +45,24 @@ export const gameSlice = createSlice({
   },
   reducers: {
     set: (state, action) => {
+      // console.log('gameSlice set', action.payload)
       return {
         ...state, 
         ...action.payload
       }
     },
     reset: (state, action) => {      
-      state.mode = (action && action.payload && action.payload.mode) || state.mode // keep same as last game unless otherwise specified
-      state.remoteGameId = (action && action.payload && action.payload.remoteGameId) || initialState.remoteGameId
-      state.turn = initialState.turn
-      state.status = initialState.status
-      state.grid = initialState.grid
-      state.moves = initialState.moves
+      // console.log('gameSlice reset', action.payload)
+      return {
+        ...initialState,
+        ...action.payload,
+        mode: (action && action.payload && action.payload.mode) || state.mode, // keep same as last game unless otherwise specified
+      }
     },
     mark: (state, action) => {
       const { row, col } = action.payload
       const { grid, turn } = state
-      // console.log('game reducer mark', { state, action, mode, turn, grid })
+      // console.log('gameSlice mark', { state, action, mode, turn, grid })
       const square = grid[row][col]
 
       if (markSquare(square, turn)) {
@@ -97,6 +98,10 @@ export const selectStatus = (state) => state.game.status
 
 export const selectMoves = (state) => state.game.moves
 
-export const selectRemoteGameId = (state) => state.game.remoteGameId
+export const selectGameId = (state) => state.game.gameId
+
+export const selectGameToJoin = (state) => state.game.gameToJoin
+
+export const selectGameToCleanup = (state) => state.game.gameToCleanup
 
 export default gameSlice.reducer
