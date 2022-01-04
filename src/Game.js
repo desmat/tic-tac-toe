@@ -19,10 +19,12 @@ import {
   STATUS_ABORTED,
   STATUS_ERROR,
   reset,
+  set,
   selectTurn,
   selectStatus,
   selectMode,
-  selectRemoteGameId,
+  selectGameId,
+  PLAY_MODE_DEMO,
 } from './features/tic-tac-toe/gameSlice'
 import { createRemoteGame, findRemoteGames } from './features/tic-tac-toe/remoteGame'
 import { Menu, MenuItem } from './Menu'
@@ -56,6 +58,7 @@ export function FindRemoteGameMenu({ element }) {
   )
 }
 
+
 function WaitingRemoteGameMenu({ element }) {
   const navigate = useNavigate()
 
@@ -72,6 +75,7 @@ function WaitingRemoteGameMenu({ element }) {
     </Menu>
   )
 }
+
 
 function GameOverMenu({ onClick, element }) {
   const mode = useSelector(selectMode)
@@ -118,20 +122,22 @@ function GameOverMenu({ onClick, element }) {
   )
 }
 
+
 let lastGameId, createdGameId
 
 export function GameContainer({ element }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { mode = PLAY_MODE_LOCAL, id } = useParams()
-  const status = useSelector(selectStatus)
-  const remoteGameId = useSelector(selectRemoteGameId)
+  const gameStatus = useSelector(selectStatus)
+  const gameMode = useSelector(selectMode)
+  const gameId = useSelector(selectGameId)
   const [showGameOverMenu, setShowGameOverMenu] = useState()
   
   const newGame = (mode, gameId) => {
     console.log('newGame', { mode, gameId })
     if (mode.toLowerCase().includes('remote')) {
-      dispatch(reset({ mode: mode.toUpperCase(), remoteGameId: gameId }))      
+      dispatch(reset({ mode: mode.toUpperCase(), gameId }))      
     } else {
       dispatch(reset({ mode: mode.toUpperCase(), status: STATUS_PLAYING }))      
     }
@@ -145,23 +151,43 @@ export function GameContainer({ element }) {
     }
   }
 
-  // trigger on mode, id and status
+
+  // special trigger to cleanup and ongoing game when user navigates away
   useEffect(() => {
-    // console.log('GameContainer useEffect', { mode, id, status, lastGameId, createdGameId })
+    // console.log('GameContainer useEffect', { mode, id })
+
+    return () => {
+      // console.log('GameContainer useEffect cleanup', { mode, id })
+      if (mode && mode.includes('remote') && id) {
+        dispatch(set({ gameToCleanup: id }))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, id])
+
+
+  // trigger on mode, id and gameStatus
+  useEffect(() => {
+    // console.log('GameContainer useEffect', { mode, id, gameStatus, lastGameId, createdGameId })
     
     if (mode.toUpperCase().includes('REMOTE')) {
       if (id) {
-        // console.log('(maybe) JOIN REMOTE GAME', { id, status, remoteUserId, lastGameId, createdGameId })
+        // console.log('(maybe) JOIN REMOTE GAME', { id, gameStatus, lastGameId, createdGameId })
         if (id && !createdGameId && id !== lastGameId) {
-          console.log('JOIN REMOTE GAME', { id, mode })
-          newGame(PLAY_MODE_O_VS_REMOTE, id) // this is player o joining a game created by a remote player x
+          // console.log('JOIN REMOTE GAME', { id, mode })
+          // local player o joining a game created by a remote player x
+          // also dispatch reset instead of set to avoid leaving the previous game in the
+          // background when setting up the next game
+          dispatch(reset({ mode: PLAY_MODE_O_VS_REMOTE, gameToJoin: id })) 
         }
       } else if (!createdGameId) {
         // console.log('CREATE REMOTE GAME')
         createRemoteGame().then(({ gameId }) => {
-          console.log('game created', { gameId })
+          // console.log('game created', { gameId })
           createdGameId = gameId
-          newGame(PLAY_MODE_X_VS_REMOTE, gameId) // game creator is player x
+          // game creator is local player x
+          // also dispatch set instead of reset to leave the previous game behind while we wait
+          dispatch(set({ gameToJoin: gameId }))
           navigate(`/play/remote/${gameId}`)
         })
       }
@@ -170,33 +196,35 @@ export function GameContainer({ element }) {
     lastGameId = id
 
     return () => {
-      // console.log('GameContainer useEffect cleanup', { mode, id, status, lastGameId, createdGameId })
+      // console.log('GameContainer useEffect cleanup', { mode, id, gameStatus, lastGameId, createdGameId })
       if (id && id === createdGameId) {
         createdGameId = undefined
       }
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, id, status])
+  }, [mode, id, gameStatus])
 
-  // trigger on status
+
+  // trigger on gameMode, status updates
   useEffect(() => {
-    // console.log('GameContainer useEffect', { status })
+    // console.log('GameContainer useEffect', { gameMode, status })
     let timeout
-    if ([STATUS_WIN, STATUS_DRAW, STATUS_ABORTED].includes(status)) {
+    if (gameMode !== PLAY_MODE_DEMO && [STATUS_WIN, STATUS_DRAW, STATUS_ABORTED].includes(gameStatus)) {
       // show the game over menu after a short delay
       timeout = setTimeout(() => {
         setShowGameOverMenu(true)
-      }, status === STATUS_WIN ? 1250 : 250)
-    }
+      }, gameStatus === STATUS_WIN ? 1250 : 250)
 
-    return () => {
-      // console.log('GameContainer useEffect cleanup', { status })
-      clearTimeout(timeout)
-      setShowGameOverMenu(false)
+      return () => {
+        // console.log('GameContainer useEffect cleanup', { gameMode, status })
+        clearTimeout(timeout)
+        setShowGameOverMenu(false)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }, [gameMode, gameStatus])
+
 
   // trigger on mode
   useEffect(() => {
@@ -212,18 +240,20 @@ export function GameContainer({ element }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
-  // console.log('GameContainer render', { mode, status, id, remoteGameId, createdGameId})
-  if (mode.includes('remote') && (!id || [STATUS_INIT, STATUS_WAITING].includes(status) || 
-      (createdGameId && createdGameId !== remoteGameId))) {
+
+  if (mode.includes('remote') && (
+      !id || !gameMode || !gameMode.includes('REMOTE') ||
+      (gameMode.includes('REMOTE') && [STATUS_INIT, STATUS_WAITING].includes(gameStatus)) || 
+      (createdGameId && createdGameId !== gameId))) {
     return <WaitingRemoteGameMenu element={element} />
   }
 
-  if (showGameOverMenu || status === STATUS_ERROR || status === STATUS_ABORTED) {
+  if (gameMode !== PLAY_MODE_DEMO && (showGameOverMenu || [STATUS_ERROR, STATUS_ABORTED].includes(gameStatus))) {
     return <GameOverMenu onClick={playAgain} element={element} />
   }
   
   return (
-    <div className={`GameContainer}`}>
+    <div className={`GameContainer`}>
       <div className="element">
         {element}
       </div>

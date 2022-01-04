@@ -45,23 +45,24 @@ export const gameSlice = createSlice({
   },
   reducers: {
     set: (state, action) => {
+      // console.log('gameSlice set', action.payload)
       return {
         ...state, 
         ...action.payload
       }
     },
     reset: (state, action) => {      
+      // console.log('gameSlice reset', action.payload)
       return {
         ...initialState,
+        ...action.payload,
         mode: (action && action.payload && action.payload.mode) || state.mode, // keep same as last game unless otherwise specified
-        status: (action && action.payload && action.payload.status) || initialState.status,
-        remoteGameId: (action && action.payload && action.payload.remoteGameId) || initialState.remoteGameId,
       }
     },
     mark: (state, action) => {
       const { row, col } = action.payload
       const { grid, turn } = state
-      // console.log('game reducer mark', { state, action, mode, turn, grid })
+      // console.log('gameSlice mark', { state, action, mode, turn, grid })
       const square = grid[row][col]
 
       if (markSquare(square, turn)) {
@@ -97,6 +98,10 @@ export const selectStatus = (state) => state.game.status
 
 export const selectMoves = (state) => state.game.moves
 
-export const selectRemoteGameId = (state) => state.game.remoteGameId
+export const selectGameId = (state) => state.game.gameId
+
+export const selectGameToJoin = (state) => state.game.gameToJoin
+
+export const selectGameToCleanup = (state) => state.game.gameToCleanup
 
 export default gameSlice.reducer

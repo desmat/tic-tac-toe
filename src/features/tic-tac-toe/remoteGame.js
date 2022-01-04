@@ -1,6 +1,6 @@
 import * as firestore from "firebase/firestore"
 import * as firebase from '../../firebase'
-import { STATUS_INIT, STATUS_WAITING, STATUS_PLAYING } from './gameSlice'
+import { STATUS_INIT, STATUS_WAITING, STATUS_PLAYING, STATUS_ABORTED } from './gameSlice'
 
 const COLLECTION_NAME = `tic-tac-toe-games`
 
@@ -55,7 +55,7 @@ async function cleanupGameDoc(gameId, player) {
 }
 
 async function updateGameDoc(gameId, player, data = {}, onError) {
-  // console.log('updateGameDoc', { gameId, player, data })
+  // console.log('updateGameDoc', JSON.stringify({ gameId, player, data }))
 
   return firestore.updateDoc(firestore.doc(firebase.db, COLLECTION_NAME, gameId), { 
     [`player_${player}_updated`]: firestore.serverTimestamp(),
@@ -97,19 +97,25 @@ export async function startRemoteGame({ gameId, player, onRemotePlayerMove, onRe
   } else {
     let lastMove, lastRemotePlayerId
     const cleanupOnSnapshot = firestore.onSnapshot(firestore.doc(firebase.db, COLLECTION_NAME, gameId), (snapshot) => {
-      // console.log('startRemoteGame onSnapshot', { gameId, player, data: snapshot && snapshot.data() })
+      // console.log('startRemoteGame onSnapshot', JSON.stringify({ gameId, player, data: snapshot && snapshot.data() }))
       if (snapshot && snapshot.data()) {
+        const remotePlayer = player === 'x' ? 'o' : 'x'
         const { 
           status,
           moves,
-          [`player_${player === 'x' ? 'o' : 'x'}_updated`]: remotePlayerUpdated,
-          [`player_${player === 'x' ? 'o' : 'x'}_uid`]: remotePlayerId,
+          [`player_${remotePlayer}_updated`]: remotePlayerUpdated,
+          [`player_${remotePlayer}_uid`]: remotePlayerId,
         } = snapshot.data()
         const move = moves && moves.length > 0 ? moves[moves.length - 1] : undefined
         
         if (remotePlayerId !== lastRemotePlayerId) {
           lastRemotePlayerId = remotePlayerId
-          onRemotePlayerConnected && onRemotePlayerConnected({ gameId, player, userId: remotePlayerId })
+          let updatedStatus = status
+          if (status === STATUS_WAITING && remotePlayerUpdated) {
+            updatedStatus = STATUS_PLAYING
+            updateGameDoc(gameId, player, { status: updatedStatus })
+          }
+          onRemotePlayerConnected && onRemotePlayerConnected({ gameId, player: remotePlayer, status: updatedStatus })
         }
         
         if (move !== lastMove) {
@@ -125,7 +131,8 @@ export async function startRemoteGame({ gameId, player, onRemotePlayerMove, onRe
         
         if ([STATUS_PLAYING].includes(status) && calcPlayerStatus(remotePlayerUpdated) !== PLAYER_STATUS_CURRENT) {
           // console.log('startRemoteGame onSnapshot: remote player disconnected', { gameId, player, remotePlayerUpdated, status })
-          onRemotePlayerDisconnected && onRemotePlayerDisconnected({ gameId, player, userId: remotePlayerId })
+          updateGameDoc(gameId, player, { status: STATUS_ABORTED })
+          onRemotePlayerDisconnected && onRemotePlayerDisconnected({ gameId, player: remotePlayer, status: STATUS_ABORTED })
         }
       }
     }) 
@@ -136,9 +143,9 @@ export async function startRemoteGame({ gameId, player, onRemotePlayerMove, onRe
       [`player_${player === 'x' ? 'o' : 'x'}_updated`]: remotePlayerUpdated,
     } = doc.data()
 
-    // console.log('startRemoteGame joining game', { gameId, player, status, playerId, playerUpdated, remotePlayerId, remotePlayerUpdated })
+    // console.log('startRemoteGame joining game', { gameId, player, status, playerUpdated, remotePlayerUpdated })
 
-    const updateGameData = {}
+    const updateGameData = { status }
     if (status === STATUS_INIT && playerUpdated && !remotePlayerUpdated) {
       updateGameData.status = STATUS_WAITING
     } else if (status === STATUS_WAITING && playerUpdated && remotePlayerUpdated) {
@@ -152,11 +159,16 @@ export async function startRemoteGame({ gameId, player, onRemotePlayerMove, onRe
       updateGameDoc(gameId, player, {}, () => {clearInterval(pingInterval)})
     }, UPDATE_GAME_INTERVAL)  
   
-    return () => {
-      // console.log('startRemoteGame cleanup', { gameId, player })
-      cleanupOnSnapshot()
-      clearInterval(pingInterval)
-      cleanupGameDoc(gameId, player)
+    return {
+      gameId, 
+      player,
+      status: updateGameData.status,
+      cleanup: () => {
+        // console.log('startRemoteGame cleanup', { gameId, player })
+        cleanupOnSnapshot()
+        clearInterval(pingInterval)
+        cleanupGameDoc(gameId, player)
+      }
     }
   }
 }
