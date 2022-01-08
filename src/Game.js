@@ -170,7 +170,7 @@ export function GameContainer({ element }) {
         // local player o joining a game created by a remote player x
         // also dispatch reset instead of set to avoid leaving the previous game in the
         // background when setting up the next game
-        dispatch(reset({ mode: PLAY_MODE_O_VS_REMOTE, gameToJoin: id })) 
+        dispatch(reset({ mode: PLAY_MODE_O_VS_REMOTE, status: STATUS_PLAYING, gameToJoin: id })) 
       } else if (!id && !createdGameId) {
         createRemoteGame().then(({ gameId }) => {
           // console.log('game created', { gameId })

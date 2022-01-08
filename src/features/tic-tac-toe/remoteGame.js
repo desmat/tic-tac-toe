@@ -1,6 +1,6 @@
 import * as firestore from "firebase/firestore"
 import * as firebase from '../../firebase'
-import { STATUS_INIT, STATUS_WAITING, STATUS_PLAYING, STATUS_ABORTED } from './gameSlice'
+import { STATUS_INIT, STATUS_WAITING, STATUS_PLAYING, STATUS_ABORTED, STATUS_DRAW, STATUS_WIN } from './gameSlice'
 
 const COLLECTION_NAME = `tic-tac-toe-games`
 
@@ -27,27 +27,31 @@ function calcPlayerStatus(lastUpdated) {
 
 async function cleanupGameDoc(gameId, player) {
   // console.log('cleanupGameDoc', { gameId, player })
+
   firestore.getDoc(firestore.doc(firebase.db, COLLECTION_NAME, gameId)).then((gameDoc) => {
     if (gameDoc && gameDoc.data()) {
-      const otherPlayerLastUpdated = player === 'x' ? gameDoc.data().player_o_updated : gameDoc.data().player_x_updated
-      const otherPlayerStatus = calcPlayerStatus(otherPlayerLastUpdated)
-      if (otherPlayerStatus === PLAYER_STATUS_CURRENT && player) {
-        // opponent still connected
-        firestore.updateDoc(gameDoc.ref, { 
-          [`player_${player}_updated`]: null
-        }).then(() => {
-          // console.log('cleanupGameDoc updated', { gameId, player })
-        }).catch((error) => {
-          console.error('Error cleaning up game doc', { gameId, player, error })
+      firestore.updateDoc(gameDoc.ref, { [`player_${player}_updated`]: null }).then(() => {
+        // console.log('cleanupGameDoc updated', { gameId, player })
+
+        firestore.getDoc(firestore.doc(firebase.db, COLLECTION_NAME, gameId)).then((updatedGameDoc) => {
+          if (updatedGameDoc && updatedGameDoc.data()) {
+            // console.log('cleanupGameDoc updated', { gameId, player, updatedGameDoc })
+      
+            // everybody gone! remove game record
+            const { player_x_updated, player_o_updated } = updatedGameDoc.data()
+            if (calcPlayerStatus(player_x_updated) !== PLAYER_STATUS_CURRENT && calcPlayerStatus(player_o_updated) !== PLAYER_STATUS_CURRENT) {
+              // console.log('cleanupGameDoc deleting...', { gameId, player })
+              firestore.deleteDoc(updatedGameDoc.ref).then(() => {
+                // console.log('cleanupGameDoc deleted', { gameId, player })
+              }).catch((error) => {
+                console.error('Error deleting game doc', { gameId, player, error })
+              })
+            }
+          }
         })
-      } else {
-        // opponent already left, kill the record
-        firestore.deleteDoc(gameDoc.ref).then(() => {
-          // console.log('cleanupGameDoc deleted', { gameId, player })
-        }).catch((error) => {
-          console.error('Error deleting game doc', { gameId, player, error })
-        })
-      }
+      }).catch((error) => {
+        console.error('Error cleaning up game doc', { gameId, player, error })
+      })
     }
   }).catch((error) => {
     console.error('error getting game doc', { gameId, player, error })

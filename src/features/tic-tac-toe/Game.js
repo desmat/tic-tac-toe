@@ -161,11 +161,12 @@ function Game() {
           }, 
           onRemotePlayerConnected: ({ gameId, player, status }) => {
             // console.log('remote player connected', { gameId, player, status })
-            dispatch(reset({ 
-              mode: player === 'x' ? PLAY_MODE_O_VS_REMOTE : PLAY_MODE_X_VS_REMOTE, 
-              status,
-              gameId, 
-            }))     
+            if (player === 'x') {
+              // local player o just joined and player x will immediately joined: we already assumed this and already reset the game in anticipation
+              // dispatch(reset({ mode: PLAY_MODE_O_VS_REMOTE, status, gameId, }))
+            } else {
+              dispatch(reset({ mode: PLAY_MODE_X_VS_REMOTE, status, gameId, }))
+            }
           }, 
           onRemotePlayerDisconnected: ({ gameId, player }) => {
             // console.log('remote player disconnected', { gameId, player })
@@ -175,11 +176,17 @@ function Game() {
             console.error('Error starting remote game', { gameId, error })
             dispatch(set({ status: STATUS_ERROR }))
           }
-        }).then(({ gameId, status, cleanup }) => {
-          // console.log('startRemoteGame success', { gameId, status, cleanup })
+        }).then(({ gameId, status, player, cleanup }) => {
+          // console.log('startRemoteGame success', { gameId, status, player, cleanup })
           cleanupRemoteGame = cleanup
           joinedGameId = gameId
-          dispatch(set({ gameId, status, gameToJoin: undefined }))
+          if (player === 'o') {
+            // player o joins and player x will immediately join so just skip to status 
+            // playing to smooth out transition
+            dispatch(set({ gameId, status: STATUS_PLAYING, gameToJoin: undefined }))
+          } else {
+            dispatch(set({ gameId, status, gameToJoin: undefined }))
+          }
         })
       })
     }
