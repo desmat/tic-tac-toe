@@ -1,6 +1,6 @@
 import * as firestore from "firebase/firestore"
 import * as firebase from '../../firebase'
-import { STATUS_INIT, STATUS_WAITING, STATUS_PLAYING, STATUS_ABORTED, STATUS_DRAW, STATUS_WIN } from './gameSlice'
+import { STATUS_INIT, STATUS_WAITING, STATUS_PLAYING, STATUS_ABORTED } from './gameSlice'
 
 const COLLECTION_NAME = `tic-tac-toe-games`
 
