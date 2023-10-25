@@ -1,11 +1,17 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Tic Tac Toe",
+  "name": "Tic Tac Toe",
+  "description": "A simple web app to play the game of tic-tac-toe, utilizing the latest tech and best practice from the React ecosystem.",
   "icons": [
     {
       "src": "favicon.ico",
-      "sizes": "any",
+      "sizes": "64x64",
       "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
     }
   ],
   "start_url": ".",
