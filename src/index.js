@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from "react-router-dom";
+import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 import App from './App';
 import { store } from './app/store';
@@ -14,6 +15,7 @@ ReactDOM.render(
     <BrowserRouter basename={BASENAME}>
       <Provider store={store}>
         <App />
+        <Analytics />
       </Provider>
     </BrowserRouter>  
   </React.StrictMode>,
