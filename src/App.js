@@ -23,6 +23,8 @@ function AboutMenu({ element }) {
         <p style={{ textAlign: "center" }}>
           <i>A simple web app utilizing latest tech and best practice from the React ecosystem</i>
           <br />
+          <i>Something!</i>
+          <br />
           <br />
           <a target="_blank" rel="noreferrer" href="https://github.com/desmat">github.com/desmat</a>
         </p>
@@ -36,7 +38,7 @@ function AboutMenu({ element }) {
 
 function App() {
   const navigate = useNavigate()
-  
+
   const newGame = (mode) => {
     if (mode === PLAY_MODE_LOCAL) {
       navigate('/play')
@@ -46,7 +48,7 @@ function App() {
       navigate(`/play/${mode.toLowerCase()}`)
     }
   }
-  
+
   const gameElement = <Game />
 
   return (
